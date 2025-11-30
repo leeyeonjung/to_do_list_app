@@ -1,0 +1,47 @@
+.todo-list-container {
+  margin-top: 20px;
+}
+
+.todo-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #B0E0E6;
+}
+
+.todo-list-header h2 {
+  font-size: 1.5rem;
+  color: #333;
+  margin: 0;
+}
+
+.todo-count {
+  color: #666;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.todo-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.todo-list-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: #999;
+}
+
+.todo-list-empty p {
+  margin: 10px 0;
+  font-size: 1.1rem;
+}
+
+.empty-subtitle {
+  font-size: 0.9rem !important;
+  color: #bbb;
+}
+
