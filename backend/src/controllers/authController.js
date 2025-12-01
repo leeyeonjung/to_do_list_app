@@ -6,7 +6,7 @@ const router = express.Router();
 
 /**
  * POST /api/auth/kakao
- * 카카오 OAuth 로그인 (accessToken 직접 전달)
+ * 카카오 accessToken 직접 로그인
  */
 router.post('/kakao', async (req, res) => {
   try {
@@ -26,19 +26,22 @@ router.post('/kakao', async (req, res) => {
 
 /**
  * POST /api/auth/kakao/callback
- * 카카오 OAuth 코드를 받아서 로그인 처리
+ * FE에서 code만 전달 → BE가 .env redirectUri 사용
  */
 router.post('/kakao/callback', async (req, res) => {
   try {
-    const { code, redirectUri } = req.body;
+    const { code } = req.body;
 
-    if (!code || !redirectUri) {
-      return res.status(400).json({ error: '코드와 redirectUri가 필요합니다.' });
+    if (!code) {
+      return res.status(400).json({ error: '카카오 인증 코드가 필요합니다.' });
     }
 
-    const accessToken = await oauthService.exchangeKakaoCode(code, redirectUri);
+    // redirectUri는 FE에서 받지 않고 BE 내부 env 사용
+    const accessToken = await oauthService.exchangeKakaoCode(code);
     const result = await oauthService.handleKakaoLogin(accessToken);
+
     res.json(result);
+
   } catch (error) {
     console.error('카카오 로그인 오류:', error);
     res.status(401).json({ error: error.message || '카카오 로그인에 실패했습니다.' });
@@ -47,7 +50,7 @@ router.post('/kakao/callback', async (req, res) => {
 
 /**
  * POST /api/auth/naver
- * 네이버 OAuth 로그인 (accessToken 직접 전달)
+ * 네이버 accessToken 직접 로그인
  */
 router.post('/naver', async (req, res) => {
   try {
@@ -67,19 +70,23 @@ router.post('/naver', async (req, res) => {
 
 /**
  * POST /api/auth/naver/callback
- * 네이버 OAuth 코드를 받아서 로그인 처리
+ * FE → code + state 전달
+ * BE는 redirectUri를 .env에서 사용
  */
 router.post('/naver/callback', async (req, res) => {
   try {
-    const { code, state, redirectUri } = req.body;
+    const { code, state } = req.body;
 
-    if (!code || !state || !redirectUri) {
-      return res.status(400).json({ error: '코드, state, redirectUri가 필요합니다.' });
+    if (!code || !state) {
+      return res.status(400).json({ error: '코드와 state가 필요합니다.' });
     }
 
-    const accessToken = await oauthService.exchangeNaverCode(code, state, redirectUri);
+    // redirectUri는 FE에서 받지 않음
+    const accessToken = await oauthService.exchangeNaverCode(code, state);
     const result = await oauthService.handleNaverLogin(accessToken);
+
     res.json(result);
+
   } catch (error) {
     console.error('네이버 로그인 오류:', error);
     res.status(401).json({ error: error.message || '네이버 로그인에 실패했습니다.' });
@@ -88,7 +95,7 @@ router.post('/naver/callback', async (req, res) => {
 
 /**
  * GET /api/auth/me
- * 현재 로그인한 사용자 정보 조회
+ * 현재 로그인 사용자 정보 조회
  */
 router.get('/me', async (req, res) => {
   try {
@@ -114,4 +121,3 @@ router.get('/me', async (req, res) => {
 });
 
 module.exports = router;
-

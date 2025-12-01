@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import './Login.css';
 
-const Login = ({ onLogin }) => {
+const Login = ({ onLogin, apiBaseUrl }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // 🚀 프론트에서는 반드시 명시적으로 8000 포트 사용해야 함
-  const redirectUri = "http://13.124.138.204:8000/oauth";
+  // Frontend base URL (Docker 환경에서는 80포트)
+  const FRONT_BASE = "http://13.124.138.204";
 
   // 카카오 로그인
   const handleKakaoLogin = async () => {
@@ -17,17 +17,15 @@ const Login = ({ onLogin }) => {
       const kakaoClientId = process.env.REACT_APP_KAKAO_REST_API_KEY;
       if (!kakaoClientId) throw new Error('카카오 REST API 키가 설정되지 않았습니다.');
 
+      const redirectUri = `${FRONT_BASE}/auth/kakao/callback`;
+
       const kakaoAuthUrl =
         `https://kauth.kakao.com/oauth/authorize` +
         `?client_id=${kakaoClientId}` +
         `&redirect_uri=${encodeURIComponent(redirectUri)}` +
         `&response_type=code`;
 
-      console.log(">>> FRONT redirectUri:", redirectUri);
-      console.log(">>> KakaoAuthUrl:", kakaoAuthUrl);
-
       window.location.href = kakaoAuthUrl;
-
     } catch (err) {
       setError(err.message || '카카오 로그인에 실패했습니다.');
       setLoading(false);
@@ -46,6 +44,8 @@ const Login = ({ onLogin }) => {
       const state = Math.random().toString(36).substring(2, 15);
       sessionStorage.setItem('naver_oauth_state', state);
 
+      const redirectUri = `${FRONT_BASE}/auth/naver/callback`;
+
       const naverAuthUrl =
         `https://nid.naver.com/oauth2.0/authorize` +
         `?response_type=code` +
@@ -53,11 +53,7 @@ const Login = ({ onLogin }) => {
         `&redirect_uri=${encodeURIComponent(redirectUri)}` +
         `&state=${state}`;
 
-      console.log(">>> FRONT redirectUri:", redirectUri);
-      console.log(">>> NaverAuthUrl:", naverAuthUrl);
-
       window.location.href = naverAuthUrl;
-
     } catch (err) {
       setError(err.message || '네이버 로그인에 실패했습니다.');
       setLoading(false);
@@ -78,8 +74,7 @@ const Login = ({ onLogin }) => {
             onClick={handleKakaoLogin}
             disabled={loading}
           >
-            <span className="login-button-icon">카카오</span>
-            로그인
+            <span className="login-button-icon">카카오</span> 로그인
           </button>
 
           <button
@@ -87,8 +82,7 @@ const Login = ({ onLogin }) => {
             onClick={handleNaverLogin}
             disabled={loading}
           >
-            <span className="login-button-icon">네이버</span>
-            로그인
+            <span className="login-button-icon">네이버</span> 로그인
           </button>
         </div>
 

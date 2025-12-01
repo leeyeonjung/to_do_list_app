@@ -1,11 +1,19 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import './Login.css';
 
 const AuthCallback = ({ onLogin, apiBaseUrl }) => {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [status, setStatus] = useState("loading"); // loading | success | error
+  const [errorMessage, setErrorMessage] = useState("");
+
+  // 🔥 useEffect 2회 실행 방지용 ref
+  const executedRef = useRef(false);
 
   useEffect(() => {
+    if (executedRef.current) {
+      return; // 두 번째 실행을 완전히 차단
+    }
+    executedRef.current = true;
+
     const handleCallback = async () => {
       try {
         const urlParams = new URLSearchParams(window.location.search);
@@ -18,16 +26,13 @@ const AuthCallback = ({ onLogin, apiBaseUrl }) => {
         }
 
         let result;
-        const redirectUri = window.location.origin + path;
 
+        // --- 카카오 처리 ---
         if (path.includes('/kakao')) {
-          // 카카오 콜백 처리
           const response = await fetch(`${apiBaseUrl}/auth/kakao/callback`, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ code, redirectUri }),
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code }),
           });
 
           if (!response.ok) {
@@ -36,8 +41,10 @@ const AuthCallback = ({ onLogin, apiBaseUrl }) => {
           }
 
           result = await response.json();
-        } else if (path.includes('/naver')) {
-          // 네이버 콜백 처리
+        }
+
+        // --- 네이버 처리 ---
+        else if (path.includes('/naver')) {
           const savedState = sessionStorage.getItem('naver_oauth_state');
           if (state !== savedState) {
             throw new Error('상태 값이 일치하지 않습니다.');
@@ -45,10 +52,8 @@ const AuthCallback = ({ onLogin, apiBaseUrl }) => {
 
           const response = await fetch(`${apiBaseUrl}/auth/naver/callback`, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ code, state, redirectUri }),
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code, state }),
           });
 
           if (!response.ok) {
@@ -58,28 +63,34 @@ const AuthCallback = ({ onLogin, apiBaseUrl }) => {
 
           result = await response.json();
           sessionStorage.removeItem('naver_oauth_state');
-        } else {
+        }
+
+        else {
           throw new Error('알 수 없는 인증 경로입니다.');
         }
 
-        // 로그인 성공
+        // --- 로그인 성공 ---
         localStorage.setItem('token', result.token);
         localStorage.setItem('user', JSON.stringify(result.user));
         onLogin(result.user, result.token);
 
-        // 메인 페이지로 리다이렉트
-        window.location.href = '/';
+        setStatus("success");
+        window.location.replace('/');
+
       } catch (err) {
         console.error('OAuth 콜백 오류:', err);
-        setError(err.message);
-        setLoading(false);
+        setErrorMessage(err.message);
+        setStatus("error");
       }
     };
 
     handleCallback();
+
   }, [apiBaseUrl, onLogin]);
 
-  if (loading) {
+  // ----- 렌더링 -----
+
+  if (status === "loading") {
     return (
       <div className="login-container">
         <div className="login-box">
@@ -89,11 +100,11 @@ const AuthCallback = ({ onLogin, apiBaseUrl }) => {
     );
   }
 
-  if (error) {
+  if (status === "error") {
     return (
       <div className="login-container">
         <div className="login-box">
-          <div className="login-error">{error}</div>
+          <div className="login-error">{errorMessage}</div>
           <button
             className="login-button"
             onClick={() => window.location.href = '/'}
@@ -110,4 +121,3 @@ const AuthCallback = ({ onLogin, apiBaseUrl }) => {
 };
 
 export default AuthCallback;
-
