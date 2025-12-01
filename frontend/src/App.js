@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 import TodoList from './components/TodoList';
 import TodoForm from './components/TodoForm';
+import Login from './components/Login';
+import UserProfile from './components/UserProfile';
+import AuthCallback from './components/AuthCallback';
 
 // Capacitor 환경 감지
 const isCapacitor = typeof window !== 'undefined' && window.Capacitor;
@@ -18,21 +21,92 @@ const getApiBaseUrl = () => {
   if (isCapacitor) {
     return 'http://13.124.138.204/api';
   }
+
+  // 3) 개발 환경 기본값
+  return 'http://localhost:5000/api';
 };
 
 const API_BASE_URL = getApiBaseUrl();
 
 function App() {
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(null);
   const [todos, setTodos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  // 인증 상태 확인
+  useEffect(() => {
+    const savedToken = localStorage.getItem('token');
+    const savedUser = localStorage.getItem('user');
+
+    if (savedToken && savedUser) {
+      setToken(savedToken);
+      setUser(JSON.parse(savedUser));
+      
+      // 토큰 유효성 검증
+      verifyToken(savedToken);
+    } else {
+      setCheckingAuth(false);
+    }
+  }, []);
+
+  // 토큰 유효성 검증
+  const verifyToken = async (tokenToVerify) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/me`, {
+        headers: {
+          'Authorization': `Bearer ${tokenToVerify}`
+        }
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        setUser(userData);
+        setCheckingAuth(false);
+      } else {
+        // 토큰이 유효하지 않으면 로그아웃
+        handleLogout();
+      }
+    } catch (err) {
+      handleLogout();
+    }
+  };
+
+  // 로그인 처리
+  const handleLogin = (userData, tokenData) => {
+    setUser(userData);
+    setToken(tokenData);
+    setCheckingAuth(false);
+    fetchTodos();
+  };
+
+  // 로그아웃 처리
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setUser(null);
+    setToken(null);
+    setTodos([]);
+    setCheckingAuth(false);
+  };
+
+  // OAuth 콜백 경로 확인
+  const isAuthCallback = window.location.pathname.includes('/auth/');
 
   // 모든 투두 조회
   const fetchTodos = async () => {
+    if (!token) return;
+    
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/todos`);
+      const response = await fetch(`${API_BASE_URL}/todos`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       if (!response.ok) {
         throw new Error('투두를 불러오는데 실패했습니다.');
       }
@@ -52,6 +126,7 @@ function App() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(todoData),
       });
@@ -76,6 +151,7 @@ function App() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(todoData),
       });
@@ -100,6 +176,9 @@ function App() {
     try {
       const response = await fetch(`${API_BASE_URL}/todos/${id}`, {
         method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
 
       if (!response.ok) {
@@ -123,9 +202,33 @@ function App() {
   };
 
   useEffect(() => {
-    fetchTodos();
-  }, []);
+    if (user && token) {
+      fetchTodos();
+    }
+  }, [user, token]);
 
+  // OAuth 콜백 처리
+  if (isAuthCallback) {
+    return <AuthCallback onLogin={handleLogin} apiBaseUrl={API_BASE_URL} />;
+  }
+
+  // 인증 확인 중
+  if (checkingAuth) {
+    return (
+      <div className="app">
+        <div className="app-container">
+          <div className="loading">인증 확인 중...</div>
+        </div>
+      </div>
+    );
+  }
+
+  // 로그인되지 않은 경우
+  if (!user || !token) {
+    return <Login onLogin={handleLogin} apiBaseUrl={API_BASE_URL} />;
+  }
+
+  // 로그인된 경우
   return (
     <div className="app">
       <div className="app-container">
@@ -133,6 +236,8 @@ function App() {
           <h1>할 일 목록</h1>
           <p className="app-subtitle">오늘 해야 할 일을 관리하세요</p>
         </header>
+
+        <UserProfile user={user} onLogout={handleLogout} />
 
         {error && (
           <div className="error-message">
