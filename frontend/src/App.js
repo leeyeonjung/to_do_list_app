@@ -36,6 +36,28 @@ function App() {
   const [error, setError] = useState(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
 
+  // OAuth 콜백 경로 확인 (state로 관리)
+  const [isAuthCallback, setIsAuthCallback] = useState(
+    window.location.pathname.includes('/auth/')
+  );
+
+  // URL 변경 감지
+  useEffect(() => {
+    const checkPath = () => {
+      setIsAuthCallback(window.location.pathname.includes('/auth/'));
+    };
+    
+    // 초기 체크
+    checkPath();
+    
+    // popstate 이벤트 리스너 (뒤로가기/앞으로가기)
+    window.addEventListener('popstate', checkPath);
+    
+    return () => {
+      window.removeEventListener('popstate', checkPath);
+    };
+  }, []);
+
   // 인증 상태 확인
   useEffect(() => {
     const savedToken = localStorage.getItem('token');
@@ -92,8 +114,6 @@ function App() {
     setCheckingAuth(false);
   };
 
-  // OAuth 콜백 경로 확인
-  const isAuthCallback = window.location.pathname.includes('/auth/');
 
   // 모든 투두 조회
   const fetchTodos = async () => {

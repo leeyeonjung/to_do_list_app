@@ -79,7 +79,7 @@ const Login = ({ onLogin }) => {
             disabled={loading}
           >
             <span className="login-button-icon">카카오</span>
-            로 로그인
+            로그인
           </button>
 
           <button
@@ -88,7 +88,7 @@ const Login = ({ onLogin }) => {
             disabled={loading}
           >
             <span className="login-button-icon">네이버</span>
-            로 로그인
+            로그인
           </button>
         </div>
 

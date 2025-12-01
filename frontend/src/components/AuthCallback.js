@@ -67,9 +67,10 @@ const AuthCallback = ({ onLogin, apiBaseUrl }) => {
         localStorage.setItem('user', JSON.stringify(result.user));
         onLogin(result.user, result.token);
 
-        // URL 정리
-        window.history.replaceState({}, document.title, '/');
+        // 메인 페이지로 리다이렉트
+        window.location.href = '/';
       } catch (err) {
+        console.error('OAuth 콜백 오류:', err);
         setError(err.message);
         setLoading(false);
       }
