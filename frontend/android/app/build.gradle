@@ -1,18 +1,16 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace "com.todolist.app"
+    namespace "com.todo.app"
     compileSdkVersion rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.todolist.app"
+        applicationId "com.todo.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
-             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
-             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
@@ -51,4 +49,36 @@ try {
     }
 } catch(Exception e) {
     logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}
+
+import java.text.SimpleDateFormat
+
+tasks.whenTaskAdded { task ->
+    if (task.name == "assembleDebug") {
+        task.doLast {
+            def date = new Date().format("yyyyMMdd_HHmm")
+            def apkDir = "${buildDir}/outputs/apk/debug"
+            def original = file("${apkDir}/app-debug.apk")
+            def renamed = file("${apkDir}/app-debug-${date}.apk")
+
+            if (original.exists()) {
+                original.renameTo(renamed)
+                println "Debug APK renamed to: ${renamed.name}"
+            }
+        }
+    }
+
+    if (task.name == "assembleRelease") {
+        task.doLast {
+            def date = new Date().format("yyyyMMdd_HHmm")
+            def apkDir = "${buildDir}/outputs/apk/release"
+            def original = file("${apkDir}/app-release.apk")
+            def renamed = file("${apkDir}/app-release-${date}.apk")
+
+            if (original.exists()) {
+                original.renameTo(renamed)
+                println "Release APK renamed to: ${renamed.name}"
+            }
+        }
+    }
 }

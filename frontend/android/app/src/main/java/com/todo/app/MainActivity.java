@@ -1,4 +1,4 @@
-package com.todolist.app;
+package com.todo.app;
 
 import com.getcapacitor.BridgeActivity;
 

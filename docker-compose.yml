@@ -16,7 +16,7 @@ services:
     networks:
       - todo-network
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:5000/health"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:5000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -27,7 +27,8 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - REACT_APP_API_URL=http://13.124.138.204:5000
+        # - REACT_APP_API_URL=http://13.124.138.204:5000
+        REACT_APP_API_URL: "/api"
     container_name: todo-frontend
     ports:
       - "80:80"

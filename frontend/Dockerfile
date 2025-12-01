@@ -1,32 +1,33 @@
-# 빌드 단계
 FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# 빌드 인자 (API URL)
-ARG REACT_APP_API_URL=http://localhost:5000/api
+# API URL 전달 (React 환경변수)
+ARG REACT_APP_API_URL=/api
 ENV REACT_APP_API_URL=$REACT_APP_API_URL
 
-# package.json 복사 및 의존성 설치
+# npm 설치
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 
-# 소스 코드 복사 및 빌드
+# 소스 복사 및 빌드
 COPY . .
+
+# React 빌드
+RUN echo "Using API URL: $REACT_APP_API_URL"
 RUN npm run build
 
-# 프로덕션 단계
+# -------------------------
+# 2) Production (Nginx)
+# -------------------------
 FROM nginx:alpine
 
-# 빌드된 파일을 Nginx로 복사
+# 빌드 결과 복사
 COPY --from=builder /app/build /usr/share/nginx/html
 
-# Nginx 설정 파일 복사
+# Nginx 설정 복사
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# 포트 노출
 EXPOSE 80
 
-# Nginx 실행
 CMD ["nginx", "-g", "daemon off;"]
-

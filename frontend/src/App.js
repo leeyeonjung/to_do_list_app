@@ -3,34 +3,24 @@ import './App.css';
 import TodoList from './components/TodoList';
 import TodoForm from './components/TodoForm';
 
-// 모바일 앱에서는 환경 변수 또는 기본값 사용
-// 개발: http://localhost:5000/api
-// 모바일 테스트: http://192.168.0.20:5000/api (같은 WiFi 네트워크)
-// 프로덕션: 실제 서버 URL
-
-// Capacitor 환경 확인 (모바일 앱)
+// Capacitor 환경 감지
 const isCapacitor = typeof window !== 'undefined' && window.Capacitor;
 
-// API URL 설정
+// API 베이스 URL 계산
 const getApiBaseUrl = () => {
-  // 1. 환경 변수가 있으면 우선 사용
+  // 1) Docker build-time 환경 변수 (권장)
   if (process.env.REACT_APP_API_URL) {
+    // 예: "/api"
     return process.env.REACT_APP_API_URL;
   }
-  
-  // 2. 모바일 앱(Capacitor) 환경에서는 고정 IP 사용
+
+  // 2) APK(WebView) 환경용 (외부 IP + /api)
   if (isCapacitor) {
-    return 'http://192.168.0.20:5000/api';
+    return 'http://13.124.138.204/api';
   }
-  
-  // 3. 웹 브라우저 환경에서는 localhost 또는 호스트네임 사용
-  const hostname = window.location.hostname;
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return 'http://localhost:5000/api';
-  }
-  
-  // 4. 기타 환경에서는 호스트네임 기반 URL 사용
-  return `http://${hostname}:5000/api`;
+
+  // 3) Web 환경(Nginx) — 항상 /api 사용
+  return '/api';
 };
 
 const API_BASE_URL = getApiBaseUrl();
@@ -98,7 +88,9 @@ function App() {
       }
 
       const updatedTodo = await response.json();
-      setTodos(todos.map(todo => (todo.id === updatedTodo.id ? updatedTodo : todo)));
+      setTodos(todos.map(todo =>
+        (todo.id === updatedTodo.id ? updatedTodo : todo)
+      ));
       return true;
     } catch (err) {
       setError(err.message);
@@ -172,4 +164,3 @@ function App() {
 }
 
 export default App;
-
