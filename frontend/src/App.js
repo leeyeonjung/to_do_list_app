@@ -18,9 +18,6 @@ const getApiBaseUrl = () => {
   if (isCapacitor) {
     return 'http://13.124.138.204/api';
   }
-
-  // 3) Web 환경(Nginx) — 항상 /api 사용
-  return '/api';
 };
 
 const API_BASE_URL = getApiBaseUrl();
