@@ -1,25 +1,36 @@
 const axios = require('axios');
+const qs = require('qs');
 const userService = require('./userService');
 
 class OAuthService {
+
+  constructor() {
+    // 공통 Redirect URI (자동화 테스트 + Web + Mobile 통합)
+    this.redirectUri = process.env.KAKAO_REDIRECT_URI || 'http://13.124.138.204:8000/oauth';
+  }
+
   /**
    * 카카오 OAuth 코드를 accessToken으로 교환
    */
-  async exchangeKakaoCode(code, redirectUri) {
+  async exchangeKakaoCode(code) {
     try {
-      const response = await axios.post('https://kauth.kakao.com/oauth/token', null, {
-        params: {
+      const response = await axios.post(
+        'https://kauth.kakao.com/oauth/token',
+        qs.stringify({
           grant_type: 'authorization_code',
           client_id: process.env.KAKAO_REST_API_KEY,
-          redirect_uri: redirectUri,
+          redirect_uri: this.redirectUri,
           code: code
-        },
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8'
+        }),
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8'
+          }
         }
-      });
+      );
 
       return response.data.access_token;
+
     } catch (error) {
       throw new Error(`카카오 토큰 교환 실패: ${error.message}`);
     }
@@ -28,7 +39,7 @@ class OAuthService {
   /**
    * 네이버 OAuth 코드를 accessToken으로 교환
    */
-  async exchangeNaverCode(code, state, redirectUri) {
+  async exchangeNaverCode(code, state) {
     try {
       const response = await axios.get('https://nid.naver.com/oauth2.0/token', {
         params: {
@@ -37,15 +48,17 @@ class OAuthService {
           client_secret: process.env.NAVER_CLIENT_SECRET,
           code: code,
           state: state,
-          redirect_uri: redirectUri
+          redirect_uri: this.redirectUri
         }
       });
 
       return response.data.access_token;
+
     } catch (error) {
       throw new Error(`네이버 토큰 교환 실패: ${error.message}`);
     }
   }
+
   /**
    * 카카오 OAuth 토큰으로 사용자 정보 가져오기
    */
@@ -58,13 +71,19 @@ class OAuthService {
       });
 
       const kakaoUser = response.data;
+
       return {
         oauthId: kakaoUser.id.toString(),
         provider: 'kakao',
         email: kakaoUser.kakao_account?.email || null,
-        nickname: kakaoUser.kakao_account?.profile?.nickname || kakaoUser.properties?.nickname || '카카오 사용자',
-        profileImage: kakaoUser.kakao_account?.profile?.profile_image_url || kakaoUser.properties?.profile_image || null
+        nickname: kakaoUser.kakao_account?.profile?.nickname 
+          || kakaoUser.properties?.nickname 
+          || '카카오 사용자',
+        profileImage: kakaoUser.kakao_account?.profile?.profile_image_url 
+          || kakaoUser.properties?.profile_image 
+          || null
       };
+
     } catch (error) {
       throw new Error(`카카오 사용자 정보 조회 실패: ${error.message}`);
     }
@@ -82,6 +101,7 @@ class OAuthService {
       });
 
       const naverUser = response.data.response;
+
       return {
         oauthId: naverUser.id,
         provider: 'naver',
@@ -89,6 +109,7 @@ class OAuthService {
         nickname: naverUser.nickname || naverUser.name || '네이버 사용자',
         profileImage: naverUser.profile_image || null
       };
+
     } catch (error) {
       throw new Error(`네이버 사용자 정보 조회 실패: ${error.message}`);
     }
@@ -101,7 +122,7 @@ class OAuthService {
     const oauthData = await this.getKakaoUserInfo(accessToken);
     const user = userService.findOrCreateUser(oauthData);
     const token = userService.generateToken(user);
-    
+
     return {
       token,
       user: {
@@ -121,7 +142,7 @@ class OAuthService {
     const oauthData = await this.getNaverUserInfo(accessToken);
     const user = userService.findOrCreateUser(oauthData);
     const token = userService.generateToken(user);
-    
+
     return {
       token,
       user: {
@@ -136,4 +157,3 @@ class OAuthService {
 }
 
 module.exports = new OAuthService();
-
