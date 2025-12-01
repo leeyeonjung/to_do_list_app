@@ -1,0 +1,7 @@
+node_modules
+android
+build
+capacitor
+capacitor.config.*
+npm-debug.log
+*.md

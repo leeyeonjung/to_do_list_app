@@ -1,10 +1,15 @@
 {
-  "appId": "com.todolist.app",
-  "appName": "Todo List",
+  "appId": "com.todo.app",
+  "appName": "TodoApp",
   "webDir": "build",
+  "bundledWebRuntime": false,
   "server": {
-    "androidScheme": "https",
-    "cleartext": true
+    "url": "http://13.124.138.204",
+    "cleartext": true,
+    "allowNavigation": [
+      "13.124.138.204",
+      "13.124.138.204:5000"
+    ]
   },
   "plugins": {
     "SplashScreen": {
@@ -15,4 +20,3 @@
     }
   }
 }
-
