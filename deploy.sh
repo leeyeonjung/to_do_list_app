@@ -59,7 +59,8 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-if ! command -v docker-compose &> /dev/null; then
+# Docker Compose V2 확인 (docker compose)
+if ! docker compose version &> /dev/null; then
     echo -e "${RED}❌ Docker Compose가 설치되어 있지 않습니다.${NC}"
     echo "설치 가이드: https://docs.docker.com/compose/install/"
     exit 1
@@ -72,13 +73,13 @@ read -p "기존 컨테이너를 중지하고 제거하시겠습니까? (y/N): " 
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     echo "🗑️  기존 컨테이너 중지 및 제거..."
-    docker-compose down
+    docker compose down
     echo -e "${GREEN}✅ 기존 컨테이너 제거 완료${NC}"
 fi
 
 # 4. Docker 이미지 빌드
 echo "🔨 Docker 이미지 빌드 중..."
-docker-compose build --no-cache
+docker compose build --no-cache
 
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✅ Docker 이미지 빌드 완료${NC}"
@@ -89,7 +90,7 @@ fi
 
 # 5. 컨테이너 실행
 echo "🚀 컨테이너 실행 중..."
-docker-compose up -d
+docker compose up -d
 
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✅ 컨테이너 실행 완료${NC}"
@@ -101,13 +102,13 @@ fi
 # 6. 상태 확인
 echo "📊 컨테이너 상태 확인..."
 sleep 5
-docker-compose ps
+docker compose ps
 
 # 7. 로그 확인
 echo ""
 echo -e "${YELLOW}📋 최근 로그 (Ctrl+C로 종료):${NC}"
-echo "전체 로그를 보려면: docker-compose logs -f"
-echo "특정 서비스 로그: docker-compose logs -f backend 또는 frontend"
+echo "전체 로그를 보려면: docker compose logs -f"
+echo "특정 서비스 로그: docker compose logs -f backend 또는 frontend"
 echo ""
 
 # 8. Health check
@@ -139,10 +140,10 @@ echo ""
 echo -e "${GREEN}🎉 배포 완료!${NC}"
 echo ""
 echo "📌 유용한 명령어:"
-echo "  - 로그 확인: docker-compose logs -f"
-echo "  - 컨테이너 재시작: docker-compose restart"
-echo "  - 컨테이너 중지: docker-compose down"
-echo "  - 상태 확인: docker-compose ps"
+echo "  - 로그 확인: docker compose logs -f"
+echo "  - 컨테이너 재시작: docker compose restart"
+echo "  - 컨테이너 중지: docker compose down"
+echo "  - 상태 확인: docker compose ps"
 echo ""
 echo "🌐 접속 주소:"
 echo "  - Frontend: http://localhost (또는 서버 IP)"
