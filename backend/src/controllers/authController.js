@@ -342,8 +342,10 @@ router.get('/me', async (req, res) => {
 router.post('/test-token', (req, res) => {
   try {
     // 프로덕션 환경에서는 막아두기
-    if (process.env.NODE_ENV === 'production') {
-      return res.status(403).json({ error: 'test-token 엔드포인트는 프로덕션에서 사용할 수 없습니다.' });
+    if (process.env.NODE_ENV === 'production' && process.env.ALLOW_TEST_TOKEN_IN_PROD !== 'true') {
+      return res.status(403).json({
+        error: 'test-token 엔드포인트는 프로덕션에서 사용할 수 없습니다. (ALLOW_TEST_TOKEN_IN_PROD=true 설정 시 허용)'
+      });
     }
 
     const { id, email, provider } = req.body;
