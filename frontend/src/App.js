@@ -63,11 +63,20 @@ function App() {
     const savedToken = localStorage.getItem('token');
     const savedUser = localStorage.getItem('user');
 
-    if (savedToken && savedUser) {
+    // 토큰만 있어도 서버에 /auth/me를 물어봐서 사용자 정보를 가져오도록 변경
+    if (savedToken) {
       setToken(savedToken);
-      setUser(JSON.parse(savedUser));
-      
-      // 토큰 유효성 검증
+
+      // 로컬에 저장된 사용자 정보가 있으면 먼저 세팅
+      if (savedUser) {
+        try {
+          setUser(JSON.parse(savedUser));
+        } catch {
+          // 파싱 에러는 무시하고 서버에서 다시 가져옴
+        }
+      }
+
+      // 토큰 유효성 검증 및 최신 사용자 정보 로드
       verifyToken(savedToken);
     } else {
       setCheckingAuth(false);
