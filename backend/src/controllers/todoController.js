@@ -1,5 +1,5 @@
 const express = require('express');
-const todoService = require('../service/todoService');
+const pool = require('../db');
 
 const router = express.Router();
 
@@ -7,10 +7,10 @@ const router = express.Router();
  * GET /api/todos
  * 모든 투두 조회
  */
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const todos = todoService.getAllTodos();
-    res.json(todos);
+    const result = await pool.query('SELECT * FROM todos ORDER BY id ASC');
+    res.json(result.rows);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -20,12 +20,17 @@ router.get('/', (req, res) => {
  * GET /api/todos/:id
  * 특정 투두 조회
  */
-router.get('/:id', (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
-    const todo = todoService.getTodoById(req.params.id);
-    res.json(todo);
+    const result = await pool.query('SELECT * FROM todos WHERE id=$1', [req.params.id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Todo not found' });
+    }
+
+    res.json(result.rows[0]);
   } catch (error) {
-    res.status(404).json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -33,10 +38,15 @@ router.get('/:id', (req, res) => {
  * POST /api/todos
  * 새 투두 생성
  */
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
+  const { title, completed } = req.body;
+
   try {
-    const newTodo = todoService.createTodo(req.body);
-    res.status(201).json(newTodo);
+    const result = await pool.query(
+      'INSERT INTO todos (title, completed) VALUES ($1, $2) RETURNING *',
+      [title, completed || false]
+    );
+    res.status(201).json(result.rows[0]);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -46,13 +56,22 @@ router.post('/', (req, res) => {
  * PUT /api/todos/:id
  * 투두 수정
  */
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
+  const { title, completed } = req.body;
+
   try {
-    const updatedTodo = todoService.updateTodo(req.params.id, req.body);
-    res.json(updatedTodo);
+    const result = await pool.query(
+      'UPDATE todos SET title=$1, completed=$2 WHERE id=$3 RETURNING *',
+      [title, completed, req.params.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Todo not found' });
+    }
+
+    res.json(result.rows[0]);
   } catch (error) {
-    const statusCode = error.message === 'Todo not found' ? 404 : 400;
-    res.status(statusCode).json({ error: error.message });
+    res.status(400).json({ error: error.message });
   }
 });
 
@@ -60,15 +79,20 @@ router.put('/:id', (req, res) => {
  * DELETE /api/todos/:id
  * 투두 삭제
  */
-router.delete('/:id', (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
-    const result = todoService.deleteTodo(req.params.id);
-    res.json(result);
+    const result = await pool.query('DELETE FROM todos WHERE id=$1 RETURNING *', [
+      req.params.id,
+    ]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Todo not found' });
+    }
+
+    res.json({ success: true });
   } catch (error) {
-    const statusCode = error.message === 'Todo not found' ? 404 : 500;
-    res.status(statusCode).json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 
 module.exports = router;
-
