@@ -51,6 +51,7 @@ function TodoForm({ onAdd }) {
       <button
         type="submit"
         className="form-submit"
+        id="btn-todo-submit"
         disabled={isSubmitting || !title.trim()}
       >
         {isSubmitting ? '추가 중...' : '추가하기'}

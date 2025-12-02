@@ -17,7 +17,7 @@ const UserProfile = ({ user, onLogout }) => {
           <div className="user-email">{user.email || '이메일 없음'}</div>
         </div>
       </div>
-      <button className="logout-button" onClick={onLogout}>
+      <button id="btn-logout" className="logout-button" onClick={onLogout}>
         로그아웃
       </button>
     </div>

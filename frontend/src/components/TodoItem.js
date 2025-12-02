@@ -43,7 +43,7 @@ function TodoItem({ todo, isEditing, onEditStart, onEditCancel, onToggleComplete
 
   if (isEditing) {
     return (
-      <div className="todo-item editing">
+      <div id={`todo-item-${todo.id}`} className="todo-item editing">
         <div className="todo-item-content">
           <input
             type="text"
@@ -84,13 +84,17 @@ function TodoItem({ todo, isEditing, onEditStart, onEditCancel, onToggleComplete
   }
 
   return (
-    <div className={`todo-item ${todo.completed ? 'completed' : ''} ${isDeleting ? 'deleting' : ''}`}>
+    <div
+      id={`todo-item-${todo.id}`}
+      className={`todo-item ${todo.completed ? 'completed' : ''} ${isDeleting ? 'deleting' : ''}`}
+    >
       <div className="todo-item-checkbox">
         <input
           type="checkbox"
           checked={todo.completed}
           onChange={() => onToggleComplete(todo.id)}
           className="checkbox-input"
+          id={`todo-complete-${todo.id}`}
         />
       </div>
       <div className="todo-item-content" onClick={() => !todo.completed && onEditStart()}>
@@ -114,6 +118,7 @@ function TodoItem({ todo, isEditing, onEditStart, onEditCancel, onToggleComplete
         </button>
         <button
           className="todo-btn todo-btn-delete"
+          id={`todo-delete-${todo.id}`}
           onClick={handleDelete}
           disabled={isDeleting}
           title="삭제"

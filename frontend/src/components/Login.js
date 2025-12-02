@@ -70,7 +70,9 @@ const Login = ({ onLogin, apiBaseUrl }) => {
 
         <div className="login-buttons">
           <button
+            id="btn-login-kakao"
             className="login-button kakao-button"
+            data-provider="kakao"
             onClick={handleKakaoLogin}
             disabled={loading}
           >
@@ -78,7 +80,9 @@ const Login = ({ onLogin, apiBaseUrl }) => {
           </button>
 
           <button
+            id="btn-login-naver"
             className="login-button naver-button"
+            data-provider="naver"
             onClick={handleNaverLogin}
             disabled={loading}
           >
