@@ -4,8 +4,26 @@ const todoService = require('../service/todoService');
 const router = express.Router();
 
 /**
- * GET /api/todos
- * 모든 투두 조회
+ * @swagger
+ * /api/todos:
+ *   get:
+ *     summary: 모든 투두 조회
+ *     tags: [Todos]
+ *     responses:
+ *       200:
+ *         description: 투두 목록 조회 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Todo'
+ *       500:
+ *         description: 서버 오류
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/', (req, res) => {
   try {
@@ -17,8 +35,31 @@ router.get('/', (req, res) => {
 });
 
 /**
- * GET /api/todos/:id
- * 특정 투두 조회
+ * @swagger
+ * /api/todos/{id}:
+ *   get:
+ *     summary: 특정 투두 조회
+ *     tags: [Todos]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: 투두 ID
+ *     responses:
+ *       200:
+ *         description: 투두 조회 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Todo'
+ *       404:
+ *         description: 투두를 찾을 수 없음
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/:id', (req, res) => {
   try {
@@ -30,8 +71,41 @@ router.get('/:id', (req, res) => {
 });
 
 /**
- * POST /api/todos
- * 새 투두 생성
+ * @swagger
+ * /api/todos:
+ *   post:
+ *     summary: 새 투두 생성
+ *     tags: [Todos]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 description: 할 일 제목
+ *                 example: "새로운 할 일"
+ *               description:
+ *                 type: string
+ *                 description: 할 일 설명 (선택)
+ *                 example: "설명"
+ *     responses:
+ *       201:
+ *         description: 투두 생성 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Todo'
+ *       400:
+ *         description: 잘못된 요청
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.post('/', (req, res) => {
   try {
@@ -43,8 +117,56 @@ router.post('/', (req, res) => {
 });
 
 /**
- * PUT /api/todos/:id
- * 투두 수정
+ * @swagger
+ * /api/todos/{id}:
+ *   put:
+ *     summary: 투두 수정
+ *     tags: [Todos]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: 투두 ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 description: 할 일 제목
+ *                 example: "수정된 제목"
+ *               description:
+ *                 type: string
+ *                 description: 할 일 설명
+ *                 example: "수정된 설명"
+ *               completed:
+ *                 type: boolean
+ *                 description: 완료 여부
+ *                 example: true
+ *     responses:
+ *       200:
+ *         description: 투두 수정 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Todo'
+ *       400:
+ *         description: 잘못된 요청
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: 투두를 찾을 수 없음
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.put('/:id', (req, res) => {
   try {
@@ -57,8 +179,41 @@ router.put('/:id', (req, res) => {
 });
 
 /**
- * DELETE /api/todos/:id
- * 투두 삭제
+ * @swagger
+ * /api/todos/{id}:
+ *   delete:
+ *     summary: 투두 삭제
+ *     tags: [Todos]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: 투두 ID
+ *     responses:
+ *       200:
+ *         description: 투두 삭제 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Todo deleted successfully"
+ *       404:
+ *         description: 투두를 찾을 수 없음
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: 서버 오류
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.delete('/:id', (req, res) => {
   try {

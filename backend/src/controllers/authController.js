@@ -5,8 +5,43 @@ const userService = require('../service/userService');
 const router = express.Router();
 
 /**
- * POST /api/auth/kakao
- * 카카오 accessToken 직접 로그인
+ * @swagger
+ * /api/auth/kakao:
+ *   post:
+ *     summary: 카카오 로그인 (AccessToken 직접 전달)
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - accessToken
+ *             properties:
+ *               accessToken:
+ *                 type: string
+ *                 description: 카카오 AccessToken
+ *                 example: "카카오_access_token_값"
+ *     responses:
+ *       200:
+ *         description: 로그인 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/LoginResponse'
+ *       400:
+ *         description: 잘못된 요청
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: 로그인 실패
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.post('/kakao', async (req, res) => {
   try {
@@ -25,8 +60,43 @@ router.post('/kakao', async (req, res) => {
 });
 
 /**
- * POST /api/auth/kakao/callback
- * FE에서 code만 전달 → BE가 .env redirectUri 사용
+ * @swagger
+ * /api/auth/kakao/callback:
+ *   post:
+ *     summary: 카카오 로그인 (OAuth 코드)
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - code
+ *             properties:
+ *               code:
+ *                 type: string
+ *                 description: 카카오 OAuth 인증 코드
+ *                 example: "카카오_인증_코드"
+ *     responses:
+ *       200:
+ *         description: 로그인 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/LoginResponse'
+ *       400:
+ *         description: 잘못된 요청
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: 로그인 실패
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.post('/kakao/callback', async (req, res) => {
   try {
@@ -49,8 +119,43 @@ router.post('/kakao/callback', async (req, res) => {
 });
 
 /**
- * POST /api/auth/naver
- * 네이버 accessToken 직접 로그인
+ * @swagger
+ * /api/auth/naver:
+ *   post:
+ *     summary: 네이버 로그인 (AccessToken 직접 전달)
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - accessToken
+ *             properties:
+ *               accessToken:
+ *                 type: string
+ *                 description: 네이버 AccessToken
+ *                 example: "네이버_access_token_값"
+ *     responses:
+ *       200:
+ *         description: 로그인 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/LoginResponse'
+ *       400:
+ *         description: 잘못된 요청
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: 로그인 실패
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.post('/naver', async (req, res) => {
   try {
@@ -69,9 +174,48 @@ router.post('/naver', async (req, res) => {
 });
 
 /**
- * POST /api/auth/naver/callback
- * FE → code + state 전달
- * BE는 redirectUri를 .env에서 사용
+ * @swagger
+ * /api/auth/naver/callback:
+ *   post:
+ *     summary: 네이버 로그인 (OAuth 코드)
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - code
+ *               - state
+ *             properties:
+ *               code:
+ *                 type: string
+ *                 description: 네이버 OAuth 인증 코드
+ *                 example: "네이버_인증_코드"
+ *               state:
+ *                 type: string
+ *                 description: 상태 값 (CSRF 방지)
+ *                 example: "상태_값"
+ *     responses:
+ *       200:
+ *         description: 로그인 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/LoginResponse'
+ *       400:
+ *         description: 잘못된 요청
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: 로그인 실패
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.post('/naver/callback', async (req, res) => {
   try {
@@ -94,8 +238,26 @@ router.post('/naver/callback', async (req, res) => {
 });
 
 /**
- * GET /api/auth/me
- * 현재 로그인 사용자 정보 조회
+ * @swagger
+ * /api/auth/me:
+ *   get:
+ *     summary: 현재 로그인한 사용자 정보 조회
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: 사용자 정보 조회 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       401:
+ *         description: 인증 실패
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/me', async (req, res) => {
   try {
