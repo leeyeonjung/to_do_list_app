@@ -100,18 +100,24 @@ if [ $? -eq 0 ]; then
     echo -e "${GREEN}✅ Android APK 빌드 완료${NC}"
     echo ""
     
-    # APK 파일 위치 확인
-    APK_PATH="app/build/outputs/apk/debug/app-debug.apk"
-    if [ -f "$APK_PATH" ]; then
-        APK_SIZE=$(du -h "$APK_PATH" | cut -f1)
+    # APK 파일 위치 확인 (날짜/시간 포함된 파일명도 찾기)
+    APK_DIR="app/build/outputs/apk/debug"
+    APK_FILE=$(find "$APK_DIR" -name "app-debug*.apk" -type f | head -n 1)
+    
+    if [ -n "$APK_FILE" ] && [ -f "$APK_FILE" ]; then
+        APK_SIZE=$(du -h "$APK_FILE" | cut -f1)
+        APK_NAME=$(basename "$APK_FILE")
         echo -e "${GREEN}📦 APK 파일 위치:${NC}"
-        echo "  - 경로: $(pwd)/$APK_PATH"
+        echo "  - 파일명: $APK_NAME"
+        echo "  - 경로: $(pwd)/$APK_FILE"
         echo "  - 크기: $APK_SIZE"
         echo ""
         echo -e "${GREEN}🎉 APK 빌드 성공!${NC}"
     else
         echo -e "${YELLOW}⚠️  APK 파일을 찾을 수 없습니다.${NC}"
-        echo "  예상 경로: $APK_PATH"
+        echo "  검색 경로: $APK_DIR"
+        echo "  찾은 파일:"
+        ls -lh "$APK_DIR"/*.apk 2>/dev/null || echo "    (파일 없음)"
     fi
 else
     echo -e "${RED}❌ Android APK 빌드 실패${NC}"
@@ -123,6 +129,8 @@ cd ../..
 echo ""
 echo "📌 유용한 명령어:"
 echo "  - Release APK 빌드: cd frontend/android && ./gradlew assembleRelease"
-echo "  - APK 설치 (디바이스 연결 필요): adb install app/build/outputs/apk/debug/app-debug.apk"
+if [ -n "$APK_FILE" ] && [ -f "$APK_FILE" ]; then
+    echo "  - APK 설치 (디바이스 연결 필요): adb install $APK_FILE"
+fi
 echo ""
 
