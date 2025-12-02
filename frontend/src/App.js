@@ -235,8 +235,8 @@ function App() {
   // 인증 확인 중
   if (checkingAuth) {
     return (
-      <div className="app">
-        <div className="app-container">
+      <div id="page-auth-check" className="app">
+        <div id="auth-check-container" className="app-container">
           <div className="loading">인증 확인 중...</div>
         </div>
       </div>
@@ -250,9 +250,9 @@ function App() {
 
   // 로그인된 경우
   return (
-    <div className="app">
-      <div className="app-container">
-        <header className="app-header">
+    <div id="page-main" className="app">
+      <div id="main-container" className="app-container">
+        <header id="main-header" className="app-header">
           <h1>할 일 목록</h1>
           <p className="app-subtitle">오늘 해야 할 일을 관리하세요</p>
         </header>

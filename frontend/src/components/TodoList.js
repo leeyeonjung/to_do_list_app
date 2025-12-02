@@ -18,8 +18,8 @@ function TodoList({ todos, onToggleComplete, onUpdate, onDelete }) {
   const totalCount = todos.length;
 
   return (
-    <div className="todo-list-container">
-      <div className="todo-list-header">
+    <div id="section-todo-list" className="todo-list-container">
+      <div id="todo-list-header" className="todo-list-header">
         <h2>할 일 목록</h2>
         <span className="todo-count">
           {completedCount} / {totalCount} 완료

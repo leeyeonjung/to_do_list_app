@@ -61,8 +61,8 @@ const Login = ({ onLogin, apiBaseUrl }) => {
   };
 
   return (
-    <div className="login-container">
-      <div className="login-box">
+    <div id="page-login" className="login-container">
+      <div id="login-box" className="login-box">
         <h2 className="login-title">할 일 목록</h2>
         <p className="login-subtitle">로그인하여 시작하세요</p>
 

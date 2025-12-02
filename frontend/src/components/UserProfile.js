@@ -3,7 +3,7 @@ import './UserProfile.css';
 
 const UserProfile = ({ user, onLogout }) => {
   return (
-    <div className="user-profile">
+    <div id="section-user-profile" className="user-profile">
       <div className="user-info">
         {user.profileImage && (
           <img 

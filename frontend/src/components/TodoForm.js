@@ -27,7 +27,7 @@ function TodoForm({ onAdd }) {
   };
 
   return (
-    <form className="todo-form" onSubmit={handleSubmit}>
+    <form id="section-todo-form" className="todo-form" onSubmit={handleSubmit}>
       <div className="form-group">
         <input
           type="text"

@@ -92,8 +92,8 @@ const AuthCallback = ({ onLogin, apiBaseUrl }) => {
 
   if (status === "loading") {
     return (
-      <div className="login-container">
-        <div className="login-box">
+      <div id="page-auth-callback-loading" className="login-container">
+        <div id="auth-callback-loading-box" className="login-box">
           <div className="login-loading">로그인 처리 중...</div>
         </div>
       </div>
@@ -102,8 +102,8 @@ const AuthCallback = ({ onLogin, apiBaseUrl }) => {
 
   if (status === "error") {
     return (
-      <div className="login-container">
-        <div className="login-box">
+      <div id="page-auth-callback-error" className="login-container">
+        <div id="auth-callback-error-box" className="login-box">
           <div className="login-error">{errorMessage}</div>
           <button
             className="login-button"
