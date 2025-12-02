@@ -77,7 +77,43 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
     echo -e "${GREEN}✅ 기존 컨테이너 제거 완료${NC}"
 fi
 
-# 4. Docker 이미지 빌드
+# 4. 의존성 정리 및 재설치
+echo "🧹 의존성 정리 및 재설치 중..."
+
+# Backend 의존성 정리 및 재설치
+echo "📦 Backend 의존성 처리 중..."
+cd backend
+if [ -d "node_modules" ]; then
+    echo "  - node_modules 삭제 중..."
+    rm -rf node_modules/
+fi
+if [ -f "package-lock.json" ]; then
+    echo "  - package-lock.json 삭제 중..."
+    rm -f package-lock.json
+fi
+echo "  - npm install 실행 중..."
+npm install
+cd ..
+
+# Frontend 의존성 정리 및 재설치
+echo "📦 Frontend 의존성 처리 중..."
+cd frontend
+if [ -d "node_modules" ]; then
+    echo "  - node_modules 삭제 중..."
+    rm -rf node_modules/
+fi
+if [ -f "package-lock.json" ]; then
+    echo "  - package-lock.json 삭제 중..."
+    rm -f package-lock.json
+fi
+echo "  - npm install 실행 중..."
+npm install
+cd ..
+
+echo -e "${GREEN}✅ 의존성 정리 및 재설치 완료${NC}"
+echo ""
+
+# 5. Docker 이미지 빌드
 echo "🔨 Docker 이미지 빌드 중..."
 docker compose build --no-cache
 
@@ -88,7 +124,7 @@ else
     exit 1
 fi
 
-# 5. 컨테이너 실행
+# 6. 컨테이너 실행
 echo "🚀 컨테이너 실행 중..."
 docker compose up -d
 
@@ -99,19 +135,19 @@ else
     exit 1
 fi
 
-# 6. 상태 확인
+# 7. 상태 확인
 echo "📊 컨테이너 상태 확인..."
 sleep 5
 docker compose ps
 
-# 7. 로그 확인
+# 8. 로그 확인
 echo ""
 echo -e "${YELLOW}📋 최근 로그 (Ctrl+C로 종료):${NC}"
 echo "전체 로그를 보려면: docker compose logs -f"
 echo "특정 서비스 로그: docker compose logs -f backend 또는 frontend"
 echo ""
 
-# 8. Health check
+# 9. Health check
 echo "🏥 Health check..."
 sleep 3
 
