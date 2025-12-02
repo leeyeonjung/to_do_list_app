@@ -14,18 +14,42 @@ RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 # 1. .env 파일 확인
-if [ ! -f .env ]; then
-    echo -e "${YELLOW}⚠️  .env 파일이 없습니다. env.example을 복사합니다...${NC}"
-    if [ -f env.example ]; then
-        cp env.example .env
-        echo -e "${GREEN}✅ .env 파일 생성 완료${NC}"
-        echo -e "${YELLOW}📝 .env 파일을 수정한 후 다시 실행하세요.${NC}"
+echo "🔍 환경 변수 파일 확인..."
+
+# Backend .env 확인
+if [ ! -f backend/.env ]; then
+    echo -e "${YELLOW}⚠️  backend/.env 파일이 없습니다.${NC}"
+    if [ -f backend/.env.example ]; then
+        echo "backend/.env.example을 복사합니다..."
+        cp backend/.env.example backend/.env
+        echo -e "${GREEN}✅ backend/.env 파일 생성 완료${NC}"
+        echo -e "${YELLOW}📝 backend/.env 파일을 수정한 후 다시 실행하세요.${NC}"
         exit 1
     else
-        echo -e "${RED}❌ env.example 파일이 없습니다.${NC}"
+        echo -e "${RED}❌ backend/.env.example 파일이 없습니다.${NC}"
+        echo -e "${YELLOW}💡 backend/.env 파일을 직접 생성해주세요.${NC}"
         exit 1
     fi
+else
+    echo -e "${GREEN}✅ backend/.env 파일 확인 완료${NC}"
 fi
+
+# Frontend .env 확인
+if [ ! -f frontend/.env ]; then
+    echo -e "${YELLOW}⚠️  frontend/.env 파일이 없습니다.${NC}"
+    echo -e "${YELLOW}💡 frontend/.env 파일을 생성합니다 (기본값 사용)...${NC}"
+    cat > frontend/.env << EOF
+REACT_APP_API_URL=/api
+REACT_APP_KAKAO_REST_API_KEY=
+REACT_APP_NAVER_CLIENT_ID=
+EOF
+    echo -e "${GREEN}✅ frontend/.env 파일 생성 완료${NC}"
+    echo -e "${YELLOW}📝 frontend/.env 파일을 수정한 후 다시 실행하세요.${NC}"
+else
+    echo -e "${GREEN}✅ frontend/.env 파일 확인 완료${NC}"
+fi
+
+echo ""
 
 # 2. Docker 및 Docker Compose 확인
 echo "🔍 Docker 설치 확인..."
@@ -97,6 +121,13 @@ else
     echo -e "${YELLOW}⚠️  Backend 서버 응답 없음 (아직 시작 중일 수 있음)${NC}"
 fi
 
+# Swagger UI check
+if curl -f http://localhost:5000/api-docs > /dev/null 2>&1; then
+    echo -e "${GREEN}✅ Swagger UI 정상 동작${NC}"
+else
+    echo -e "${YELLOW}⚠️  Swagger UI 응답 없음 (아직 시작 중일 수 있음)${NC}"
+fi
+
 # Frontend health check
 if curl -f http://localhost/health > /dev/null 2>&1; then
     echo -e "${GREEN}✅ Frontend 서버 정상 동작${NC}"
@@ -116,5 +147,6 @@ echo ""
 echo "🌐 접속 주소:"
 echo "  - Frontend: http://localhost (또는 서버 IP)"
 echo "  - Backend API: http://localhost:5000/api"
+echo "  - Swagger UI: http://localhost:5000/api-docs"
 echo ""
 

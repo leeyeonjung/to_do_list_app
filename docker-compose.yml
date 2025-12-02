@@ -5,6 +5,8 @@ services:
     container_name: todo-backend
     ports:
       - "5000:5000"
+    env_file:
+      - ./backend/.env
     environment:
       - NODE_ENV=production
       - PORT=5000
