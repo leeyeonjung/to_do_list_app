@@ -56,9 +56,11 @@ const Login = ({ onLogin, apiBaseUrl }) => {
       if (!kakaoClientId) throw new Error('카카오 REST API 키가 설정되지 않았습니다.');
 
       // Capacitor 환경에서는 백엔드 URL로 리다이렉트 (외부 브라우저에서 처리)
-      // 백엔드에서 deep link로 리다이렉트함
-      const redirectUri = isCapacitor 
-        ? `${apiBaseUrl.replace('/api', '')}/api/auth/kakao/callback`
+      // - window.location.origin 을 사용해 항상 풀 URL을 사용하도록 함
+      // - 예: http://13.124.138.204 + /api/auth/kakao/callback
+      const origin = typeof window !== 'undefined' ? window.location.origin : FRONT_BASE;
+      const redirectUri = isCapacitor
+        ? `${origin}/api/auth/kakao/callback`
         : `${FRONT_BASE}/auth/kakao/callback`;
 
       const kakaoAuthUrl =
@@ -137,9 +139,11 @@ const Login = ({ onLogin, apiBaseUrl }) => {
       sessionStorage.setItem('naver_oauth_state', state);
 
       // Capacitor 환경에서는 백엔드 URL로 리다이렉트 (외부 브라우저에서 처리)
-      // 백엔드에서 deep link로 리다이렉트함
+      // - window.location.origin 을 사용해 항상 풀 URL을 사용하도록 함
+      // - 예: http://13.124.138.204 + /api/auth/naver/callback
+      const origin = typeof window !== 'undefined' ? window.location.origin : FRONT_BASE;
       const redirectUri = isCapacitor
-        ? `${apiBaseUrl.replace('/api', '')}/api/auth/naver/callback`
+        ? `${origin}/api/auth/naver/callback`
         : `${FRONT_BASE}/auth/naver/callback`;
 
       const naverAuthUrl =
