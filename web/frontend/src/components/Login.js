@@ -55,7 +55,11 @@ const Login = ({ onLogin, apiBaseUrl }) => {
       const kakaoClientId = process.env.REACT_APP_KAKAO_REST_API_KEY;
       if (!kakaoClientId) throw new Error('카카오 REST API 키가 설정되지 않았습니다.');
 
-      const redirectUri = `${FRONT_BASE}/auth/kakao/callback`;
+      // Capacitor 환경에서는 백엔드 URL로 리다이렉트 (외부 브라우저에서 처리)
+      // 백엔드에서 deep link로 리다이렉트함
+      const redirectUri = isCapacitor 
+        ? `${apiBaseUrl.replace('/api', '')}/api/auth/kakao/callback`
+        : `${FRONT_BASE}/auth/kakao/callback`;
 
       const kakaoAuthUrl =
         `https://kauth.kakao.com/oauth/authorize` +
@@ -63,7 +67,14 @@ const Login = ({ onLogin, apiBaseUrl }) => {
         `&redirect_uri=${encodeURIComponent(redirectUri)}` +
         `&response_type=code`;
 
-      window.location.href = kakaoAuthUrl;
+      // Capacitor 환경에서는 외부 브라우저로 열기 (MainActivity에서 처리)
+      // 웹 환경에서는 현재 창에서 이동
+      if (isCapacitor) {
+        // MainActivity의 WebViewClient가 외부 브라우저로 열도록 처리
+        window.location.href = kakaoAuthUrl;
+      } else {
+        window.location.href = kakaoAuthUrl;
+      }
     } catch (err) {
       setError(err.message || '카카오 로그인에 실패했습니다.');
       setLoading(false);
@@ -125,7 +136,11 @@ const Login = ({ onLogin, apiBaseUrl }) => {
       const state = Math.random().toString(36).substring(2, 15);
       sessionStorage.setItem('naver_oauth_state', state);
 
-      const redirectUri = `${FRONT_BASE}/auth/naver/callback`;
+      // Capacitor 환경에서는 백엔드 URL로 리다이렉트 (외부 브라우저에서 처리)
+      // 백엔드에서 deep link로 리다이렉트함
+      const redirectUri = isCapacitor
+        ? `${apiBaseUrl.replace('/api', '')}/api/auth/naver/callback`
+        : `${FRONT_BASE}/auth/naver/callback`;
 
       const naverAuthUrl =
         `https://nid.naver.com/oauth2.0/authorize` +
@@ -134,7 +149,14 @@ const Login = ({ onLogin, apiBaseUrl }) => {
         `&redirect_uri=${encodeURIComponent(redirectUri)}` +
         `&state=${state}`;
 
-      window.location.href = naverAuthUrl;
+      // Capacitor 환경에서는 외부 브라우저로 열기 (MainActivity에서 처리)
+      // 웹 환경에서는 현재 창에서 이동
+      if (isCapacitor) {
+        // MainActivity의 WebViewClient가 외부 브라우저로 열도록 처리
+        window.location.href = naverAuthUrl;
+      } else {
+        window.location.href = naverAuthUrl;
+      }
     } catch (err) {
       setError(err.message || '네이버 로그인에 실패했습니다.');
       setLoading(false);

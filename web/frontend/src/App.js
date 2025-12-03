@@ -91,9 +91,36 @@ function App() {
     // fetchTodos는 token이 설정된 후 useEffect에서 자동 호출됨
   }, []);
 
-  // Capacitor custom scheme 처리 (네이버만 - 카카오는 플러그인 사용)
+  // Deep link 처리: todolist://auth/callback?token=xxx
   useEffect(() => {
     if (!isCapacitor) return;
+
+    // JavaScript에서 호출할 수 있도록 전역 함수 등록
+    window.handleAuthCallback = (token) => {
+      console.log('Received token from deep link:', token);
+      if (token) {
+        // 토큰으로 사용자 정보 가져오기
+        fetch(`${API_BASE_URL}/auth/me`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+          .then(response => {
+            if (response.ok) {
+              return response.json();
+            }
+            throw new Error('토큰 검증 실패');
+          })
+          .then(userData => {
+            localStorage.setItem('token', token);
+            localStorage.setItem('user', JSON.stringify(userData));
+            handleLogin(userData, token);
+          })
+          .catch(err => {
+            console.error('Deep link 토큰 처리 오류:', err);
+          });
+      }
+    };
 
     let listenerHandle = null;
 
@@ -101,47 +128,37 @@ function App() {
       const url = event.url;
       console.log('Received custom scheme URL:', url);
 
-      // 네이버만 처리 (카카오는 KakaoLogin 플러그인 사용)
-      if (url.startsWith('todolist://auth/naver/callback')) {
+      // Deep link 처리: todolist://auth/callback?token=xxx
+      if (url.startsWith('todolist://auth/callback')) {
         try {
-          // URL 파싱: todolist://auth/naver/callback?code=xxx&state=yyy
           const urlObj = new URL(url);
-          const code = urlObj.searchParams.get('code');
-          const state = urlObj.searchParams.get('state');
+          const token = urlObj.searchParams.get('token');
 
-          if (!code) {
-            console.error('인증 코드를 받지 못했습니다.');
+          if (!token) {
+            console.error('토큰을 받지 못했습니다.');
             return;
           }
 
-          const savedState = sessionStorage.getItem('naver_oauth_state');
-          if (state !== savedState) {
-            throw new Error('상태 값이 일치하지 않습니다.');
-          }
-
-          const response = await fetch(`${API_BASE_URL}/auth/naver/callback`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ code, state }),
+          // 토큰으로 사용자 정보 가져오기
+          const response = await fetch(`${API_BASE_URL}/auth/me`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
           });
 
           if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || '네이버 로그인에 실패했습니다.');
+            throw new Error('토큰 검증 실패');
           }
 
-          const result = await response.json();
-          sessionStorage.removeItem('naver_oauth_state');
+          const userData = await response.json();
 
           // 로그인 성공
-          localStorage.setItem('token', result.token);
-          localStorage.setItem('user', JSON.stringify(result.user));
-          handleLogin(result.user, result.token);
+          localStorage.setItem('token', token);
+          localStorage.setItem('user', JSON.stringify(userData));
+          handleLogin(userData, token);
 
         } catch (err) {
-          console.error('OAuth 콜백 오류:', err);
-          // 에러 발생 시 로그인 페이지로 이동
-          window.location.href = '/';
+          console.error('Deep link 처리 오류:', err);
         }
       }
     };
