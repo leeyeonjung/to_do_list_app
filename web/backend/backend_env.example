@@ -1,0 +1,30 @@
+NODE_ENV=production
+
+# Server port
+PORT=5000
+
+# JWT secret (replace with a strong random string in your real .env)
+JWT_SECRET=change_this_to_a_secure_random_string
+
+# Kakao OAuth
+# Kakao REST API Key
+KAKAO_REST_API_KEY=your_kakao_rest_api_key
+
+# Kakao Redirect URI (backend handles code exchange and deep-link redirect)
+# Must match the Redirect URI registered in Kakao Developers
+KAKAO_REDIRECT_URI=http://13.124.138.204/api/auth/kakao/callback
+
+# Naver OAuth
+NAVER_CLIENT_ID=your_naver_client_id
+NAVER_CLIENT_SECRET=your_naver_client_secret
+
+# Naver Redirect URI (backend handles code exchange and deep-link redirect)
+# Must match the Callback URL registered in Naver Developers
+NAVER_REDIRECT_URI=http://13.124.138.204/api/auth/naver/callback
+
+# Test token endpoint in production
+# false (default): /api/auth/test-token is disabled in production
+# true           : allow using /api/auth/test-token even in production
+ALLOW_TEST_TOKEN_IN_PROD=false
+
+
