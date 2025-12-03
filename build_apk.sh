@@ -6,10 +6,21 @@ echo "=== 📱 APK Build 시작 ==="
 # 날짜/시간 (예: 20251203_1528)
 BUILD_TIME=$(date +"%Y%m%d_%H%M")
 
-# 1. 모바일 디렉토리로 이동
-cd mobile
+# 0. 웹 앱 빌드 (필수)
+echo "=== 🌐 웹 앱 빌드 ==="
+cd web/frontend
+npm install
+npm run build
 
-# 2. Capacitor Android Sync (플러그인 동기화만)
+# 1. 모바일 디렉토리로 이동
+cd ../../mobile
+
+# 2. 웹 앱을 mobile/www로 복사
+echo "=== 📦 웹 앱 복사 ==="
+rm -rf www
+cp -r ../web/frontend/build www
+
+# 3. Capacitor Android Sync (플러그인 동기화)
 echo "=== 🔄 Capacitor Sync ==="
 npx cap sync android
 
