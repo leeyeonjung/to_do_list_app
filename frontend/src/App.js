@@ -6,9 +6,15 @@ import Login from './components/Login';
 import UserProfile from './components/UserProfile';
 import AuthCallback from './components/AuthCallback';
 import { App as CapacitorApp } from '@capacitor/app';
+import Kakao from '@kakao/kakao-js-sdk';
 
 // Capacitor 환경 감지
 const isCapacitor = typeof window !== 'undefined' && window.Capacitor;
+
+// 카카오 SDK 초기화
+if (process.env.REACT_APP_KAKAO_JS_KEY) {
+  Kakao.init(process.env.REACT_APP_KAKAO_JS_KEY);
+}
 
 // API 베이스 URL 계산
 const getApiBaseUrl = () => {
