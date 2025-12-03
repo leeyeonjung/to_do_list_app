@@ -5,6 +5,7 @@ import TodoForm from './components/TodoForm';
 import Login from './components/Login';
 import UserProfile from './components/UserProfile';
 import AuthCallback from './components/AuthCallback';
+import { App } from '@capacitor/app';
 
 // Capacitor 환경 감지
 const isCapacitor = typeof window !== 'undefined' && window.Capacitor;
@@ -57,6 +58,90 @@ function App() {
       window.removeEventListener('popstate', checkPath);
     };
   }, []);
+
+  // Capacitor custom scheme 처리 (todolist://auth/kakao/callback, todolist://auth/naver/callback)
+  useEffect(() => {
+    if (!isCapacitor) return;
+
+    const handleAppUrlOpen = async (event) => {
+      const url = event.url;
+      console.log('Received custom scheme URL:', url);
+
+      if (url.startsWith('todolist://auth/')) {
+        try {
+          // URL 파싱: todolist://auth/kakao/callback?code=xxx 또는 todolist://auth/naver/callback?code=xxx&state=yyy
+          const urlObj = new URL(url);
+          const path = urlObj.pathname; // /kakao/callback 또는 /naver/callback
+          const code = urlObj.searchParams.get('code');
+          const state = urlObj.searchParams.get('state');
+
+          if (!code) {
+            console.error('인증 코드를 받지 못했습니다.');
+            return;
+          }
+
+          let result;
+
+          // 카카오 처리
+          if (path.includes('/kakao/callback')) {
+            const response = await fetch(`${API_BASE_URL}/auth/kakao/callback`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ code }),
+            });
+
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.error || '카카오 로그인에 실패했습니다.');
+            }
+
+            result = await response.json();
+          }
+          // 네이버 처리
+          else if (path.includes('/naver/callback')) {
+            const savedState = sessionStorage.getItem('naver_oauth_state');
+            if (state !== savedState) {
+              throw new Error('상태 값이 일치하지 않습니다.');
+            }
+
+            const response = await fetch(`${API_BASE_URL}/auth/naver/callback`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ code, state }),
+            });
+
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.error || '네이버 로그인에 실패했습니다.');
+            }
+
+            result = await response.json();
+            sessionStorage.removeItem('naver_oauth_state');
+          } else {
+            throw new Error('알 수 없는 인증 경로입니다.');
+          }
+
+          // 로그인 성공
+          localStorage.setItem('token', result.token);
+          localStorage.setItem('user', JSON.stringify(result.user));
+          handleLogin(result.user, result.token);
+
+        } catch (err) {
+          console.error('OAuth 콜백 오류:', err);
+          // 에러 발생 시 로그인 페이지로 이동
+          window.location.href = '/';
+        }
+      }
+    };
+
+    // Capacitor App 리스너 등록
+    App.addListener('appUrlOpen', handleAppUrlOpen);
+
+    return () => {
+      // 리스너 제거
+      App.removeAllListeners();
+    };
+  }, [isCapacitor]);
 
   // 인증 상태 확인
   useEffect(() => {
