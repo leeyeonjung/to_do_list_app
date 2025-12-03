@@ -1,27 +1,16 @@
 #!/bin/bash
 set -e
 
-echo "=== 📱 APK Build 시작 ==="
+echo "=== 📱 APK Build 시작 (외부 서버 사용, www 복사 없음) ==="
 
 # 날짜/시간 (예: 20251203_1528)
 BUILD_TIME=$(date +"%Y%m%d_%H%M")
 
-# 0. 웹 앱 빌드 (필수)
-echo "=== 🌐 웹 앱 빌드 ==="
-cd web/frontend
-npm install
-npm run build
-
 # 1. 모바일 디렉토리로 이동
-cd ../../mobile
+cd mobile
 
-# 2. 웹 앱을 mobile/www로 복사
-echo "=== 📦 웹 앱 복사 ==="
-rm -rf www
-cp -r ../web/frontend/build www
-
-# 3. Capacitor Android Sync (플러그인 동기화)
-echo "=== 🔄 Capacitor Sync ==="
+# 2. Capacitor Android Sync (플러그인 및 native 프로젝트 동기화)
+echo "=== 🔄 Capacitor Sync (android) ==="
 npx cap sync android
 
 # 3. Android 프로젝트로 이동
