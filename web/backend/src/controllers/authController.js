@@ -101,7 +101,7 @@ router.post('/kakao', async (req, res) => {
 // GET 엔드포인트: 외부 브라우저에서 OAuth 콜백 처리
 router.get('/kakao/callback', async (req, res) => {
   try {
-    const { code } = req.query;
+    const { code, state } = req.query;
 
     if (!code) {
       return res.status(400).send(`
@@ -118,9 +118,12 @@ router.get('/kakao/callback', async (req, res) => {
     const accessToken = await oauthService.exchangeKakaoCode(code);
     const result = await oauthService.handleKakaoLogin(accessToken);
 
-    // User-Agent로 PC 웹 vs 앱 구분
-    const userAgent = req.headers['user-agent'] || '';
-    const isMobileApp = userAgent.includes('wv') || userAgent.includes('Android') && userAgent.includes('Version/');
+    // state 파라미터로 모바일 앱 감지 (state가 'mobile_'로 시작하면 모바일 앱)
+    // User-Agent는 fallback으로만 사용 (다양한 브라우저 지원)
+    const userAgent = (req.headers['user-agent'] || '').toLowerCase();
+    const isMobileApp = (state && state.startsWith('mobile_')) || 
+                        userAgent.includes('wv') || // WebView
+                        (userAgent.includes('android') && !userAgent.includes('chrome') && !userAgent.includes('firefox') && !userAgent.includes('safari')); // Android 브라우저 (크롬/파이어폭스/사파리 제외)
 
     if (isMobileApp) {
       // 앱(WebView)이면 딥링크로 리다이렉트
@@ -281,13 +284,20 @@ router.get('/naver/callback', async (req, res) => {
       `);
     }
 
+    // state에서 플랫폼 정보 추출 (mobile_로 시작하면 모바일 앱)
+    const isMobileState = state.startsWith('mobile_');
+    const actualState = isMobileState ? state.substring(7) : state; // 'mobile_' 제거
+
     // redirectUri는 FE에서 받지 않음
-    const accessToken = await oauthService.exchangeNaverCode(code, state);
+    const accessToken = await oauthService.exchangeNaverCode(code, actualState);
     const result = await oauthService.handleNaverLogin(accessToken);
 
-    // User-Agent로 PC 웹 vs 앱 구분
-    const userAgent = req.headers['user-agent'] || '';
-    const isMobileApp = userAgent.includes('wv') || userAgent.includes('Android') && userAgent.includes('Version/');
+    // state 파라미터로 모바일 앱 감지 (state가 'mobile_'로 시작하면 모바일 앱)
+    // User-Agent는 fallback으로만 사용 (다양한 브라우저 지원)
+    const userAgent = (req.headers['user-agent'] || '').toLowerCase();
+    const isMobileApp = isMobileState || 
+                        userAgent.includes('wv') || // WebView
+                        (userAgent.includes('android') && !userAgent.includes('chrome') && !userAgent.includes('firefox') && !userAgent.includes('safari')); // Android 브라우저 (크롬/파이어폭스/사파리 제외)
 
     if (isMobileApp) {
       // 앱(WebView)이면 딥링크로 리다이렉트

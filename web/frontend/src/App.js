@@ -119,6 +119,11 @@ function App() {
             localStorage.setItem('token', token);
             localStorage.setItem('user', JSON.stringify(userData));
             handleLogin(userData, token);
+            // 메인 페이지로 리다이렉트
+            if (window.location.pathname !== '/') {
+              window.history.replaceState({}, '', '/');
+              window.location.reload();
+            }
           })
           .catch(err => {
             console.error('Deep link 토큰 처리 오류:', err);
@@ -160,6 +165,12 @@ function App() {
           localStorage.setItem('token', token);
           localStorage.setItem('user', JSON.stringify(userData));
           handleLogin(userData, token);
+          
+          // 메인 페이지로 리다이렉트
+          if (window.location.pathname !== '/') {
+            window.history.replaceState({}, '', '/');
+            window.location.reload();
+          }
 
         } catch (err) {
           console.error('Deep link 처리 오류:', err);

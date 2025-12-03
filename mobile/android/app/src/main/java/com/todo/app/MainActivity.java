@@ -54,21 +54,70 @@ public class MainActivity extends BridgeActivity {
                 // JavaScript로 토큰 전달
                 String token = data.getQueryParameter("token");
                 if (token != null) {
-                    Bridge bridge = this.getBridge();
-                    if (bridge != null) {
-                        WebView webView = bridge.getWebView();
-                        if (webView != null) {
-                            // JavaScript 함수 호출하여 토큰 전달
-                            String js = String.format(
-                                "if (window.handleAuthCallback) { window.handleAuthCallback('%s'); }",
-                                token.replace("'", "\\'")
-                            );
-                            webView.post(() -> webView.evaluateJavascript(js, null));
-                        }
-                    }
+                    // WebView가 준비될 때까지 대기 후 처리
+                    deliverTokenToWebView(token);
                 }
             }
         }
+    }
+
+    /**
+     * WebView가 준비될 때까지 대기 후 토큰 전달
+     */
+    private void deliverTokenToWebView(String token) {
+        Bridge bridge = this.getBridge();
+        if (bridge != null) {
+            WebView webView = bridge.getWebView();
+            if (webView != null) {
+                // WebView가 준비되었으면 즉시 실행
+                executeTokenDelivery(webView, token);
+            } else {
+                // WebView가 아직 준비되지 않았으면 지연 실행
+                webView.postDelayed(() -> {
+                    WebView wv = bridge.getWebView();
+                    if (wv != null) {
+                        executeTokenDelivery(wv, token);
+                    }
+                }, 500);
+            }
+        } else {
+            // Bridge가 아직 준비되지 않았으면 지연 실행
+            new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+                Bridge b = this.getBridge();
+                if (b != null) {
+                    WebView wv = b.getWebView();
+                    if (wv != null) {
+                        executeTokenDelivery(wv, token);
+                    }
+                }
+            }, 1000);
+        }
+    }
+
+    /**
+     * JavaScript로 토큰 전달 및 메인 페이지로 리다이렉트
+     */
+    private void executeTokenDelivery(WebView webView, String token) {
+        // 토큰을 이스케이프 처리
+        String escapedToken = token.replace("'", "\\'").replace("\"", "\\\"");
+        
+        // JavaScript 함수 호출하여 토큰 전달 및 메인 페이지로 리다이렉트
+        String js = String.format(
+            "(function() {" +
+            "  if (window.handleAuthCallback) {" +
+            "    window.handleAuthCallback('%s');" +
+            "  }" +
+            "  setTimeout(function() {" +
+            "    if (window.location.pathname !== '/') {" +
+            "      window.history.replaceState({}, '', '/');" +
+            "      window.location.reload();" +
+            "    }" +
+            "  }, 500);" +
+            "})();",
+            escapedToken
+        );
+        
+        webView.post(() -> webView.evaluateJavascript(js, null));
     }
 
     /**

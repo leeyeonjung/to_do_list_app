@@ -65,11 +65,19 @@ const Login = ({ onLogin, apiBaseUrl }) => {
       const origin = typeof window !== 'undefined' ? window.location.origin : FRONT_BASE;
       const redirectUri = `${origin}/api/auth/kakao/callback`;
 
+      // 모바일 앱인 경우 state에 플랫폼 정보 포함
+      let stateParam = '';
+      if (isCapacitor) {
+        const state = `mobile_${Math.random().toString(36).substring(2, 15)}`;
+        sessionStorage.setItem('kakao_oauth_state', state);
+        stateParam = `&state=${encodeURIComponent(state)}`;
+      }
+
       const kakaoAuthUrl =
         `https://kauth.kakao.com/oauth/authorize` +
         `?client_id=${kakaoClientId}` +
         `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-        `&response_type=code`;
+        `&response_type=code${stateParam}`;
 
       // Capacitor 환경에서는 외부 브라우저로 열기 (MainActivity에서 처리)
       // 웹 환경에서는 현재 창에서 이동
@@ -137,7 +145,9 @@ const Login = ({ onLogin, apiBaseUrl }) => {
       const naverClientId = process.env.REACT_APP_NAVER_CLIENT_ID;
       if (!naverClientId) throw new Error('네이버 Client ID가 설정되지 않았습니다.');
 
-      const state = Math.random().toString(36).substring(2, 15);
+      // 모바일 앱인 경우 state에 플랫폼 정보 포함
+      const stateBase = Math.random().toString(36).substring(2, 15);
+      const state = isCapacitor ? `mobile_${stateBase}` : stateBase;
       sessionStorage.setItem('naver_oauth_state', state);
 
       // 네이버도 웹/앱 모두 동일한 Redirect URI 한 개만 사용
