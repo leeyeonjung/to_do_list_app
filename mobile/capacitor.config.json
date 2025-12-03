@@ -1,4 +1,8 @@
 {
   "appId": "com.todo.app",
-  "appName": "todolist"
+  "appName": "todolist",
+  "server": {
+    "url": "http://13.124.138.204",
+    "cleartext": true
+  }
 }
