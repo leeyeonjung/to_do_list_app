@@ -92,6 +92,10 @@ function App() {
     setUser(userData);
     setToken(tokenData);
     setCheckingAuth(false);
+    // 메인 페이지로 리다이렉트 (딥링크 처리 후)
+    if (window.location.pathname !== '/') {
+      window.history.replaceState({}, '', '/');
+    }
     // fetchTodos는 token이 설정된 후 useEffect에서 자동 호출됨
   }, []);
 
@@ -119,11 +123,7 @@ function App() {
             localStorage.setItem('token', token);
             localStorage.setItem('user', JSON.stringify(userData));
             handleLogin(userData, token);
-            // 메인 페이지로 리다이렉트
-            if (window.location.pathname !== '/') {
-              window.history.replaceState({}, '', '/');
-              window.location.reload();
-            }
+            // handleLogin 내부에서 리다이렉트 처리
           })
           .catch(err => {
             console.error('Deep link 토큰 처리 오류:', err);
@@ -165,12 +165,7 @@ function App() {
           localStorage.setItem('token', token);
           localStorage.setItem('user', JSON.stringify(userData));
           handleLogin(userData, token);
-          
-          // 메인 페이지로 리다이렉트
-          if (window.location.pathname !== '/') {
-            window.history.replaceState({}, '', '/');
-            window.location.reload();
-          }
+          // handleLogin 내부에서 리다이렉트 처리
 
         } catch (err) {
           console.error('Deep link 처리 오류:', err);

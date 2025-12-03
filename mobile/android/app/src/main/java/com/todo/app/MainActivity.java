@@ -107,12 +107,9 @@ public class MainActivity extends BridgeActivity {
             "  if (window.handleAuthCallback) {" +
             "    window.handleAuthCallback('%s');" +
             "  }" +
-            "  setTimeout(function() {" +
-            "    if (window.location.pathname !== '/') {" +
-            "      window.history.replaceState({}, '', '/');" +
-            "      window.location.reload();" +
-            "    }" +
-            "  }, 500);" +
+            "  if (window.location.pathname !== '/') {" +
+            "    window.history.replaceState({}, '', '/');" +
+            "  }" +
             "})();",
             escapedToken
         );
