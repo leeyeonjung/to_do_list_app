@@ -4,7 +4,7 @@
   "private": true,
   "proxy": "http://localhost:5000",
   "dependencies": {
-    "@capacitor-community/kakao-login": "git+https://github.com/efluvi/capacitor3-kakao-login.git#31bd3aaf00d57a55d478a36768c8ce6515e9e1d7",
+    "capacitor-kakao-login": "git+https://github.com/taehoio/capacitor-kakao-login",
     "@capacitor/android": "^5.5.1",
     "@capacitor/app": "^5.0.6",
     "@capacitor/core": "^5.5.1",
