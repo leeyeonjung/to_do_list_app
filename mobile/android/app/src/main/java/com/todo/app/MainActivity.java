@@ -118,7 +118,8 @@ public class MainActivity extends BridgeActivity {
      */
     private boolean handleUrlLoading(WebView view, String url) {
         // 카카오/네이버 로그인 URL은 외부 브라우저로 열기
-        if (url.startsWith("https://kauth.kakao.com/") || 
+        if (url.startsWith("https://accounts.kakao.com/") ||
+            url.startsWith("https://kauth.kakao.com/") ||
             url.startsWith("https://nid.naver.com/")) {
             Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
             startActivity(intent);
