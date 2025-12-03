@@ -62,8 +62,8 @@ const Login = ({ onLogin, apiBaseUrl }) => {
       // 카카오는 웹/앱 모두 동일한 Redirect URI 한 개만 사용
       // - http://13.124.138.204/api/auth/kakao/callback
       // - Kakao Developers 및 backend .env(KAKAO_REDIRECT_URI)와 동일해야 함
-      const origin = typeof window !== 'undefined' ? window.location.origin : FRONT_BASE;
-      const redirectUri = `${origin}/api/auth/kakao/callback`;
+      // 중요: origin을 사용하지 않고 고정된 URL 사용 (백엔드와 일치해야 함)
+      const redirectUri = `http://13.124.138.204/api/auth/kakao/callback`;
 
       // 모바일 앱인 경우 state에 플랫폼 정보 포함
       let stateParam = '';
@@ -152,8 +152,8 @@ const Login = ({ onLogin, apiBaseUrl }) => {
 
       // 네이버도 웹/앱 모두 동일한 Redirect URI 한 개만 사용
       // - http://13.124.138.204/api/auth/naver/callback
-      const origin = typeof window !== 'undefined' ? window.location.origin : FRONT_BASE;
-      const redirectUri = `${origin}/api/auth/naver/callback`;
+      // 중요: origin을 사용하지 않고 고정된 URL 사용 (백엔드와 일치해야 함)
+      const redirectUri = `http://13.124.138.204/api/auth/naver/callback`;
 
       const naverAuthUrl =
         `https://nid.naver.com/oauth2.0/authorize` +

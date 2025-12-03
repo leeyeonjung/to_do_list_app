@@ -89,13 +89,24 @@ function App() {
 
   // 로그인 처리 (useCallback으로 메모이제이션하여 dependency 문제 해결)
   const handleLogin = useCallback((userData, tokenData) => {
+    console.log('handleLogin called with:', { userData, tokenData });
     setUser(userData);
     setToken(tokenData);
     setCheckingAuth(false);
+    
+    // localStorage에 저장 (이미 저장되어 있을 수 있지만 확실히 하기 위해)
+    if (tokenData) {
+      localStorage.setItem('token', tokenData);
+    }
+    if (userData) {
+      localStorage.setItem('user', JSON.stringify(userData));
+    }
+    
     // 메인 페이지로 리다이렉트 (딥링크 처리 후)
     if (window.location.pathname !== '/') {
       window.history.replaceState({}, '', '/');
     }
+    
     // fetchTodos는 token이 설정된 후 useEffect에서 자동 호출됨
   }, []);
 
@@ -104,30 +115,56 @@ function App() {
     if (!isCapacitor) return;
 
     // JavaScript에서 호출할 수 있도록 전역 함수 등록
-    window.handleAuthCallback = (token) => {
+    window.handleAuthCallback = async (token) => {
       console.log('Received token from deep link:', token);
       if (token) {
-        // 토큰으로 사용자 정보 가져오기
-        fetch(`${API_BASE_URL}/auth/me`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        })
-          .then(response => {
-            if (response.ok) {
-              return response.json();
+        try {
+          // 토큰으로 사용자 정보 가져오기
+          const response = await fetch(`${API_BASE_URL}/auth/me`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
             }
-            throw new Error('토큰 검증 실패');
-          })
-          .then(userData => {
-            localStorage.setItem('token', token);
-            localStorage.setItem('user', JSON.stringify(userData));
-            handleLogin(userData, token);
-            // handleLogin 내부에서 리다이렉트 처리
-          })
-          .catch(err => {
-            console.error('Deep link 토큰 처리 오류:', err);
           });
+
+          if (!response.ok) {
+            throw new Error('토큰 검증 실패');
+          }
+
+          const userData = await response.json();
+          localStorage.setItem('token', token);
+          localStorage.setItem('user', JSON.stringify(userData));
+          
+          // 상태 업데이트
+          handleLogin(userData, token);
+          
+          // 페이지 경로를 메인으로 변경
+          if (window.location.pathname !== '/') {
+            window.history.replaceState({}, '', '/');
+          }
+          
+          // React 상태 업데이트를 보장하기 위해 약간의 지연 후 확인
+          // 만약 상태가 업데이트되지 않았다면 페이지를 새로고침
+          setTimeout(() => {
+            const savedToken = localStorage.getItem('token');
+            const savedUser = localStorage.getItem('user');
+            if (savedToken === token && savedUser) {
+              // 토큰과 사용자 정보가 저장되어 있지만 상태가 업데이트되지 않았다면 새로고침
+              // 이는 React 상태 업데이트 타이밍 문제를 해결하기 위함
+              try {
+                const parsedUser = JSON.parse(savedUser);
+                if (parsedUser && parsedUser.id) {
+                  // 사용자 정보가 있으면 상태가 업데이트되었을 가능성이 높음
+                  // 하지만 확실하게 하기 위해 한 번 더 확인
+                  console.log('Token delivered successfully, user data:', parsedUser);
+                }
+              } catch (e) {
+                console.error('Failed to parse user data:', e);
+              }
+            }
+          }, 300);
+        } catch (err) {
+          console.error('Deep link 토큰 처리 오류:', err);
+        }
       }
     };
 
@@ -165,7 +202,11 @@ function App() {
           localStorage.setItem('token', token);
           localStorage.setItem('user', JSON.stringify(userData));
           handleLogin(userData, token);
-          // handleLogin 내부에서 리다이렉트 처리
+          
+          // 페이지 경로를 메인으로 변경
+          if (window.location.pathname !== '/') {
+            window.history.replaceState({}, '', '/');
+          }
 
         } catch (err) {
           console.error('Deep link 처리 오류:', err);
@@ -192,27 +233,33 @@ function App() {
 
   // 인증 상태 확인
   useEffect(() => {
-    const savedToken = localStorage.getItem('token');
-    const savedUser = localStorage.getItem('user');
+    const checkAuth = async () => {
+      const savedToken = localStorage.getItem('token');
+      const savedUser = localStorage.getItem('user');
 
-    // 토큰만 있어도 서버에 /auth/me를 물어봐서 사용자 정보를 가져오도록 변경
-    if (savedToken) {
-      setToken(savedToken);
+      // 토큰만 있어도 서버에 /auth/me를 물어봐서 사용자 정보를 가져오도록 변경
+      if (savedToken) {
+        setToken(savedToken);
 
-      // 로컬에 저장된 사용자 정보가 있으면 먼저 세팅
-      if (savedUser) {
-        try {
-          setUser(JSON.parse(savedUser));
-        } catch {
-          // 파싱 에러는 무시하고 서버에서 다시 가져옴
+        // 로컬에 저장된 사용자 정보가 있으면 먼저 세팅
+        if (savedUser) {
+          try {
+            const parsedUser = JSON.parse(savedUser);
+            setUser(parsedUser);
+            setCheckingAuth(false); // 로컬 데이터가 있으면 먼저 표시
+          } catch {
+            // 파싱 에러는 무시하고 서버에서 다시 가져옴
+          }
         }
-      }
 
-      // 토큰 유효성 검증 및 최신 사용자 정보 로드
-      verifyToken(savedToken);
-    } else {
-      setCheckingAuth(false);
-    }
+        // 토큰 유효성 검증 및 최신 사용자 정보 로드
+        await verifyToken(savedToken);
+      } else {
+        setCheckingAuth(false);
+      }
+    };
+
+    checkAuth();
   }, []);
 
   // 로그아웃 처리

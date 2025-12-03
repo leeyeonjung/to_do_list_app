@@ -115,14 +115,32 @@ public class MainActivity extends BridgeActivity {
         String escapedToken = token.replace("'", "\\'").replace("\"", "\\\"");
         
         // JavaScript 함수 호출하여 토큰 전달 및 메인 페이지로 리다이렉트
+        // React 앱이 로드될 때까지 재시도하는 로직 추가
         String js = String.format(
             "(function() {" +
-            "  if (window.handleAuthCallback) {" +
-            "    window.handleAuthCallback('%s');" +
+            "  var token = '%s';" +
+            "  var maxRetries = 10;" +
+            "  var retryCount = 0;" +
+            "  function tryDeliverToken() {" +
+            "    if (window.handleAuthCallback && typeof window.handleAuthCallback === 'function') {" +
+            "      console.log('Delivering token to handleAuthCallback');" +
+            "      window.handleAuthCallback(token);" +
+            "      // 페이지 리다이렉트는 handleAuthCallback 내부에서 처리됨" +
+            "      return true;" +
+            "    } else if (retryCount < maxRetries) {" +
+            "      retryCount++;" +
+            "      console.log('Waiting for React app to load, retry ' + retryCount);" +
+            "      setTimeout(tryDeliverToken, 200);" +
+            "      return false;" +
+            "    } else {" +
+            "      console.error('Failed to deliver token: handleAuthCallback not found after retries');" +
+            "      // Fallback: localStorage에 토큰 저장하고 페이지 새로고침" +
+            "      localStorage.setItem('token', token);" +
+            "      window.location.href = '/';" +
+            "      return false;" +
+            "    }" +
             "  }" +
-            "  if (window.location.pathname !== '/') {" +
-            "    window.history.replaceState({}, '', '/');" +
-            "  }" +
+            "  tryDeliverToken();" +
             "})();",
             escapedToken
         );

@@ -114,20 +114,17 @@ router.get('/kakao/callback', async (req, res) => {
       `);
     }
 
-    // 카카오톡에서 온 요청인지 확인 (referer나 user-agent로 판단)
-    // 카카오톡은 kakao{APP_KEY}://oauth 형태의 redirect_uri를 사용
-    const userAgent = (req.headers['user-agent'] || '').toLowerCase();
-    const referer = req.headers['referer'] || '';
-    const isKakaoTalk = userAgent.includes('kakaotalk') || referer.includes('kakaotalk');
+    // 카카오는 OAuth 인증 시 사용한 redirect_uri와 토큰 교환 시 사용하는 redirect_uri가 정확히 일치해야 함
+    // 프론트엔드에서 항상 http://13.124.138.204/api/auth/kakao/callback을 사용하므로
+    // 백엔드에서도 동일한 redirect_uri를 사용해야 함
+    // 카카오톡 로그인의 경우에도 동일한 redirect_uri를 사용 (카카오톡 앱에서 처리 후 서버로 리다이렉트)
+    const redirectUri = process.env.KAKAO_REDIRECT_URI || 'http://13.124.138.204/api/auth/kakao/callback';
     
-    // 카카오톡 redirect_uri 생성 (환경 변수에서 APP_KEY 가져오기)
-    let redirectUri = null;
-    if (isKakaoTalk && process.env.KAKAO_REST_API_KEY) {
-      // 카카오톡은 kakao{APP_KEY}://oauth 형태의 redirect_uri 사용
-      redirectUri = `kakao${process.env.KAKAO_REST_API_KEY}://oauth`;
-    }
+    console.log('카카오 콜백 - 사용할 redirect_uri:', redirectUri);
+    console.log('카카오 콜백 - code:', code);
+    console.log('카카오 콜백 - state:', state);
 
-    // redirectUri는 FE에서 받지 않고 BE 내부 env 사용 (카카오톡인 경우 동적 생성)
+    // redirectUri는 환경 변수에서 가져온 값 사용 (프론트엔드와 일치해야 함)
     const accessToken = await oauthService.exchangeKakaoCode(code, redirectUri);
     const result = await oauthService.handleKakaoLogin(accessToken);
 
