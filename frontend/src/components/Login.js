@@ -4,6 +4,17 @@ import './Login.css';
 // Capacitor 환경 감지
 const isCapacitor = typeof window !== 'undefined' && window.Capacitor;
 
+// Capacitor Kakao Login 플러그인 동적 import
+let KakaoLogin = null;
+if (isCapacitor) {
+  try {
+    const kakaoLoginModule = require('@capacitor-community/kakao-login');
+    KakaoLogin = kakaoLoginModule.KakaoLogin;
+  } catch (err) {
+    console.warn('KakaoLogin plugin not available:', err);
+  }
+}
+
 const Login = ({ onLogin, apiBaseUrl }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -17,13 +28,41 @@ const Login = ({ onLogin, apiBaseUrl }) => {
     setError(null);
 
     try {
+      // Capacitor 환경에서는 플러그인 사용
+      if (isCapacitor && KakaoLogin) {
+        // KakaoLogin 플러그인으로 accessToken 받기
+        const res = await KakaoLogin.login();
+        const accessToken = res.accessToken;
+
+        if (!accessToken) {
+          throw new Error('카카오 accessToken을 받지 못했습니다.');
+        }
+
+        // 서버에 accessToken 전달하여 로그인 처리
+        const response = await fetch(`${apiBaseUrl}/auth/kakao`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ accessToken }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || '카카오 로그인에 실패했습니다.');
+        }
+
+        const result = await response.json();
+        localStorage.setItem('token', result.token);
+        localStorage.setItem('user', JSON.stringify(result.user));
+        onLogin(result.user, result.token);
+        setLoading(false);
+        return;
+      }
+
+      // 웹 환경에서는 기존 OAuth 플로우 사용
       const kakaoClientId = process.env.REACT_APP_KAKAO_REST_API_KEY;
       if (!kakaoClientId) throw new Error('카카오 REST API 키가 설정되지 않았습니다.');
 
-      // Capacitor 환경에서는 custom scheme 사용, 웹 환경에서는 HTTP URL 사용
-      const redirectUri = isCapacitor 
-        ? 'todolist://auth/kakao/callback'
-        : `${FRONT_BASE}/auth/kakao/callback`;
+      const redirectUri = `${FRONT_BASE}/auth/kakao/callback`;
 
       const kakaoAuthUrl =
         `https://kauth.kakao.com/oauth/authorize` +
