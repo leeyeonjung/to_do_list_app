@@ -91,7 +91,7 @@ function App() {
     // fetchTodos는 token이 설정된 후 useEffect에서 자동 호출됨
   }, []);
 
-  // Capacitor custom scheme 처리 (todolist://auth/kakao/callback, todolist://auth/naver/callback)
+  // Capacitor custom scheme 처리 (네이버만 - 카카오는 플러그인 사용)
   useEffect(() => {
     if (!isCapacitor) return;
 
@@ -101,11 +101,11 @@ function App() {
       const url = event.url;
       console.log('Received custom scheme URL:', url);
 
-      if (url.startsWith('todolist://auth/')) {
+      // 네이버만 처리 (카카오는 KakaoLogin 플러그인 사용)
+      if (url.startsWith('todolist://auth/naver/callback')) {
         try {
-          // URL 파싱: todolist://auth/kakao/callback?code=xxx 또는 todolist://auth/naver/callback?code=xxx&state=yyy
+          // URL 파싱: todolist://auth/naver/callback?code=xxx&state=yyy
           const urlObj = new URL(url);
-          const path = urlObj.pathname; // /kakao/callback 또는 /naver/callback
           const code = urlObj.searchParams.get('code');
           const state = urlObj.searchParams.get('state');
 
@@ -114,46 +114,24 @@ function App() {
             return;
           }
 
-          let result;
-
-          // 카카오 처리
-          if (path.includes('/kakao/callback')) {
-            const response = await fetch(`${API_BASE_URL}/auth/kakao/callback`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ code }),
-            });
-
-            if (!response.ok) {
-              const errorData = await response.json();
-              throw new Error(errorData.error || '카카오 로그인에 실패했습니다.');
-            }
-
-            result = await response.json();
+          const savedState = sessionStorage.getItem('naver_oauth_state');
+          if (state !== savedState) {
+            throw new Error('상태 값이 일치하지 않습니다.');
           }
-          // 네이버 처리
-          else if (path.includes('/naver/callback')) {
-            const savedState = sessionStorage.getItem('naver_oauth_state');
-            if (state !== savedState) {
-              throw new Error('상태 값이 일치하지 않습니다.');
-            }
 
-            const response = await fetch(`${API_BASE_URL}/auth/naver/callback`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ code, state }),
-            });
+          const response = await fetch(`${API_BASE_URL}/auth/naver/callback`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code, state }),
+          });
 
-            if (!response.ok) {
-              const errorData = await response.json();
-              throw new Error(errorData.error || '네이버 로그인에 실패했습니다.');
-            }
-
-            result = await response.json();
-            sessionStorage.removeItem('naver_oauth_state');
-          } else {
-            throw new Error('알 수 없는 인증 경로입니다.');
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || '네이버 로그인에 실패했습니다.');
           }
+
+          const result = await response.json();
+          sessionStorage.removeItem('naver_oauth_state');
 
           // 로그인 성공
           localStorage.setItem('token', result.token);
