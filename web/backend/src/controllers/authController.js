@@ -114,13 +114,26 @@ router.get('/kakao/callback', async (req, res) => {
       `);
     }
 
-    // redirectUri는 FE에서 받지 않고 BE 내부 env 사용
-    const accessToken = await oauthService.exchangeKakaoCode(code);
+    // 카카오톡에서 온 요청인지 확인 (referer나 user-agent로 판단)
+    // 카카오톡은 kakao{APP_KEY}://oauth 형태의 redirect_uri를 사용
+    const userAgent = (req.headers['user-agent'] || '').toLowerCase();
+    const referer = req.headers['referer'] || '';
+    const isKakaoTalk = userAgent.includes('kakaotalk') || referer.includes('kakaotalk');
+    
+    // 카카오톡 redirect_uri 생성 (환경 변수에서 APP_KEY 가져오기)
+    let redirectUri = null;
+    if (isKakaoTalk && process.env.KAKAO_REST_API_KEY) {
+      // 카카오톡은 kakao{APP_KEY}://oauth 형태의 redirect_uri 사용
+      redirectUri = `kakao${process.env.KAKAO_REST_API_KEY}://oauth`;
+    }
+
+    // redirectUri는 FE에서 받지 않고 BE 내부 env 사용 (카카오톡인 경우 동적 생성)
+    const accessToken = await oauthService.exchangeKakaoCode(code, redirectUri);
     const result = await oauthService.handleKakaoLogin(accessToken);
 
     // state 파라미터로 모바일 앱 감지 (state가 'mobile_'로 시작하면 모바일 앱)
     // User-Agent는 fallback으로만 사용 (다양한 브라우저 지원)
-    const userAgent = (req.headers['user-agent'] || '').toLowerCase();
+    // userAgent는 이미 위에서 선언됨
     const isMobileApp = (state && state.startsWith('mobile_')) || 
                         userAgent.includes('wv') || // WebView
                         (userAgent.includes('android') && !userAgent.includes('chrome') && !userAgent.includes('firefox') && !userAgent.includes('safari')); // Android 브라우저 (크롬/파이어폭스/사파리 제외)

@@ -19,12 +19,18 @@ class OAuthService {
 
   /**
    * 카카오 OAuth 코드를 accessToken으로 교환
+   * @param {string} code - 카카오 OAuth 인증 코드
+   * @param {string} redirectUri - 선택적 redirect_uri (카카오톡 로그인 시 사용)
    */
-  async exchangeKakaoCode(code) {
+  async exchangeKakaoCode(code, redirectUri = null) {
     try {
+      // 카카오톡 로그인의 경우 redirect_uri를 동적으로 처리
+      // 카카오톡은 kakao{APP_KEY}://oauth 형태의 redirect_uri를 사용
+      const redirectUriToUse = redirectUri || this.kakaoRedirectUri;
+      
       console.log("=== [KAKAO TOKEN REQUEST] ===");
       console.log("code:", code);
-      console.log("redirect_uri:", this.kakaoRedirectUri);
+      console.log("redirect_uri:", redirectUriToUse);
       console.log("==============================");
 
       const response = await axios.post(
@@ -32,7 +38,7 @@ class OAuthService {
         qs.stringify({
           grant_type: 'authorization_code',
           client_id: process.env.KAKAO_REST_API_KEY,
-          redirect_uri: this.kakaoRedirectUri,
+          redirect_uri: redirectUriToUse,
           code: code
         }),
         {
@@ -46,7 +52,8 @@ class OAuthService {
 
     } catch (error) {
       console.error("❌ 카카오 토큰 교환 실패:", error.response?.data || error.message);
-      throw new Error(`카카오 토큰 교환 실패: ${error.message}`);
+      const errorMessage = error.response?.data?.error_description || error.message;
+      throw new Error(`카카오 토큰 교환 실패: ${errorMessage}`);
     }
   }
 

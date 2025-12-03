@@ -56,6 +56,16 @@
                     android:pathPrefix="/callback" />
             </intent-filter>
 
+            <!-- 카카오톡 로그인 Intent 처리 -->
+            <!-- 카카오톡에서 로그인 후 kakao{APP_KEY}://oauth 형태로 리다이렉트 -->
+            <!-- 실제 APP_KEY는 환경 변수나 build.gradle에서 가져와야 함 -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="kakao" />
+            </intent-filter>
+
         </activity>
 
         <provider
