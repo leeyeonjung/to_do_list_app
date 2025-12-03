@@ -5,7 +5,7 @@ import TodoForm from './components/TodoForm';
 import Login from './components/Login';
 import UserProfile from './components/UserProfile';
 import AuthCallback from './components/AuthCallback';
-import { App } from '@capacitor/app';
+import { App as CapacitorApp } from '@capacitor/app';
 
 // Capacitor 환경 감지
 const isCapacitor = typeof window !== 'undefined' && window.Capacitor;
@@ -171,7 +171,7 @@ function App() {
     // Capacitor App 리스너 등록 (Promise를 await하여 handle을 받음)
     (async () => {
       try {
-        listenerHandle = await App.addListener('appUrlOpen', handleAppUrlOpen);
+        listenerHandle = await CapacitorApp.addListener('appUrlOpen', handleAppUrlOpen);
       } catch (err) {
         console.error('Failed to register appUrlOpen listener:', err);
       }
