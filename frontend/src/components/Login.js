@@ -4,17 +4,6 @@ import './Login.css';
 // Capacitor 환경 감지
 const isCapacitor = typeof window !== 'undefined' && window.Capacitor;
 
-// Capacitor Kakao Login 플러그인 동적 import
-let KakaoLogin = null;
-if (isCapacitor) {
-  try {
-    const kakaoLoginModule = require('@capacitor-community/kakao-login');
-    KakaoLogin = kakaoLoginModule.KakaoLogin;
-  } catch (err) {
-    console.warn('KakaoLogin plugin not available:', err);
-  }
-}
-
 const Login = ({ onLogin, apiBaseUrl }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -22,43 +11,47 @@ const Login = ({ onLogin, apiBaseUrl }) => {
   // Frontend base URL (Docker 환경에서는 80포트)
   const FRONT_BASE = "http://13.124.138.204";
 
-  // 카카오 로그인 (Capacitor 플러그인)
+  // 카카오 로그인
   const handleKakaoLogin = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      // Capacitor 환경에서는 플러그인 사용
-      if (isCapacitor && KakaoLogin) {
-        // KakaoLogin 플러그인으로 accessToken 받기
-        const res = await KakaoLogin.login();
-        const accessToken = res.accessToken;
+      // Capacitor 환경에서 네이티브 플러그인 사용 시도
+      if (isCapacitor && window.KakaoLogin) {
+        try {
+          const res = await window.KakaoLogin.login();
+          const accessToken = res.accessToken;
 
-        if (!accessToken) {
-          throw new Error('카카오 accessToken을 받지 못했습니다.');
+          if (!accessToken) {
+            throw new Error('카카오 accessToken을 받지 못했습니다.');
+          }
+
+          // 서버에 accessToken 전달하여 로그인 처리
+          const response = await fetch(`${apiBaseUrl}/auth/kakao`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ accessToken }),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || '카카오 로그인에 실패했습니다.');
+          }
+
+          const result = await response.json();
+          localStorage.setItem('token', result.token);
+          localStorage.setItem('user', JSON.stringify(result.user));
+          onLogin(result.user, result.token);
+          setLoading(false);
+          return;
+        } catch (pluginErr) {
+          console.warn('KakaoLogin plugin error, falling back to OAuth:', pluginErr);
+          // 플러그인 실패 시 OAuth 플로우로 fallback
         }
-
-        // 서버에 accessToken 전달하여 로그인 처리
-        const response = await fetch(`${apiBaseUrl}/auth/kakao`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ accessToken }),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || '카카오 로그인에 실패했습니다.');
-        }
-
-        const result = await response.json();
-        localStorage.setItem('token', result.token);
-        localStorage.setItem('user', JSON.stringify(result.user));
-        onLogin(result.user, result.token);
-        setLoading(false);
-        return;
       }
 
-      // 웹 환경에서는 기존 OAuth 플로우 사용
+      // 웹 환경 또는 플러그인 실패 시 OAuth 플로우 사용
       const kakaoClientId = process.env.REACT_APP_KAKAO_REST_API_KEY;
       if (!kakaoClientId) throw new Error('카카오 REST API 키가 설정되지 않았습니다.');
 
