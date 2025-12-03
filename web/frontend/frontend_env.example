@@ -1,0 +1,25 @@
+NODE_ENV=production
+
+########################################
+# 프론트엔드 환경 변수 예시 (.env 파일)
+# 이 파일을 복사해서 같은 경로에 `.env` 이름으로 저장한 뒤
+# 실제 값으로 변경해서 사용하세요.
+########################################
+
+# 백엔드 API 베이스 URL
+# - Docker/서버 배포 시: 보통 "/api" 와 같이 리버스 프록시 경로를 사용합니다.
+# - 로컬 개발 시: "http://localhost:5000/api" 처럼 직접 백엔드 주소를 넣을 수 있습니다.
+# 예)
+# REACT_APP_API_URL=/api
+# REACT_APP_API_URL=http://localhost:5000/api
+REACT_APP_API_URL=/api
+
+# 카카오 REST API 키 (JavaScript 키가 아니라 REST API 키입니다)
+# Kakao Developers에서 발급받은 REST API 키를 넣으세요.
+REACT_APP_KAKAO_REST_API_KEY=your_kakao_rest_api_key
+
+# 네이버 Client ID
+# Naver Developers에서 발급받은 Client ID를 넣으세요.
+REACT_APP_NAVER_CLIENT_ID=your_naver_client_id
+
+
