@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './App.css';
 import TodoList from './components/TodoList';
 import TodoForm from './components/TodoForm';
@@ -59,9 +59,43 @@ function App() {
     };
   }, []);
 
+  // 모든 투두 조회
+  const fetchTodos = async () => {
+    if (!token) return;
+    
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`${API_BASE_URL}/todos`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (!response.ok) {
+        throw new Error('투두를 불러오는데 실패했습니다.');
+      }
+      const data = await response.json();
+      setTodos(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 로그인 처리 (useCallback으로 메모이제이션하여 dependency 문제 해결)
+  const handleLogin = useCallback((userData, tokenData) => {
+    setUser(userData);
+    setToken(tokenData);
+    setCheckingAuth(false);
+    // fetchTodos는 token이 설정된 후 useEffect에서 자동 호출됨
+  }, []);
+
   // Capacitor custom scheme 처리 (todolist://auth/kakao/callback, todolist://auth/naver/callback)
   useEffect(() => {
     if (!isCapacitor) return;
+
+    let listenerHandle = null;
 
     const handleAppUrlOpen = async (event) => {
       const url = event.url;
@@ -134,14 +168,22 @@ function App() {
       }
     };
 
-    // Capacitor App 리스너 등록
-    App.addListener('appUrlOpen', handleAppUrlOpen);
+    // Capacitor App 리스너 등록 (Promise를 await하여 handle을 받음)
+    (async () => {
+      try {
+        listenerHandle = await App.addListener('appUrlOpen', handleAppUrlOpen);
+      } catch (err) {
+        console.error('Failed to register appUrlOpen listener:', err);
+      }
+    })();
 
     return () => {
-      // 리스너 제거
-      App.removeAllListeners();
+      // 리스너 제거 (특정 리스너만 제거)
+      if (listenerHandle) {
+        listenerHandle.remove();
+      }
     };
-  }, [isCapacitor]);
+  }, [isCapacitor, handleLogin, API_BASE_URL]);
 
   // 인증 상태 확인
   useEffect(() => {
@@ -168,6 +210,16 @@ function App() {
     }
   }, []);
 
+  // 로그아웃 처리
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setUser(null);
+    setToken(null);
+    setTodos([]);
+    setCheckingAuth(false);
+  };
+
   // 토큰 유효성 검증
   const verifyToken = async (tokenToVerify) => {
     try {
@@ -187,49 +239,6 @@ function App() {
       }
     } catch (err) {
       handleLogout();
-    }
-  };
-
-  // 로그인 처리
-  const handleLogin = (userData, tokenData) => {
-    setUser(userData);
-    setToken(tokenData);
-    setCheckingAuth(false);
-    fetchTodos();
-  };
-
-  // 로그아웃 처리
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setUser(null);
-    setToken(null);
-    setTodos([]);
-    setCheckingAuth(false);
-  };
-
-
-  // 모든 투두 조회
-  const fetchTodos = async () => {
-    if (!token) return;
-    
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await fetch(`${API_BASE_URL}/todos`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (!response.ok) {
-        throw new Error('투두를 불러오는데 실패했습니다.');
-      }
-      const data = await response.json();
-      setTodos(data);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
     }
   };
 
