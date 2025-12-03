@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
 import './Login.css';
+import { Capacitor } from '@capacitor/core';
 
-// Capacitor 환경 감지
-const isCapacitor = typeof window !== 'undefined' && window.Capacitor;
+// Capacitor 환경 감지 (네이티브 앱에서만 true)
+const isCapacitor =
+  typeof window !== 'undefined' &&
+  typeof window.Capacitor !== 'undefined' &&
+  Capacitor.isNativePlatform();
 
 const Login = ({ onLogin, apiBaseUrl }) => {
   const [loading, setLoading] = useState(false);

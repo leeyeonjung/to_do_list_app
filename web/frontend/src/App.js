@@ -6,9 +6,13 @@ import Login from './components/Login';
 import UserProfile from './components/UserProfile';
 import AuthCallback from './components/AuthCallback';
 import { App as CapacitorApp } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
 
-// Capacitor 환경 감지
-const isCapacitor = typeof window !== 'undefined' && window.Capacitor;
+// Capacitor 환경 감지 (네이티브 앱에서만 true)
+const isCapacitor =
+  typeof window !== 'undefined' &&
+  typeof window.Capacitor !== 'undefined' &&
+  Capacitor.isNativePlatform();
 
 // API 베이스 URL 계산
 const getApiBaseUrl = () => {
