@@ -17,10 +17,35 @@ const AuthCallback = ({ onLogin, apiBaseUrl }) => {
     const handleCallback = async () => {
       try {
         const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
         const code = urlParams.get('code');
         const state = urlParams.get('state');
         const path = window.location.pathname;
 
+        // 토큰이 이미 있으면 (백엔드에서 직접 리다이렉트한 경우)
+        if (token) {
+          // 토큰으로 사용자 정보 가져오기
+          const response = await fetch(`${apiBaseUrl}/auth/me`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          if (!response.ok) {
+            throw new Error('토큰 검증 실패');
+          }
+
+          const userData = await response.json();
+          localStorage.setItem('token', token);
+          localStorage.setItem('user', JSON.stringify(userData));
+          onLogin(userData, token);
+
+          setStatus("success");
+          window.location.replace('/');
+          return;
+        }
+
+        // 기존 플로우: code로 백엔드에 POST 요청
         if (!code) {
           throw new Error('인증 코드를 받지 못했습니다.');
         }

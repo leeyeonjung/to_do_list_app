@@ -98,7 +98,7 @@ router.post('/kakao', async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-// GET 엔드포인트: 외부 브라우저에서 OAuth 콜백 처리 후 deep link로 리다이렉트
+// GET 엔드포인트: 외부 브라우저에서 OAuth 콜백 처리
 router.get('/kakao/callback', async (req, res) => {
   try {
     const { code } = req.query;
@@ -118,9 +118,19 @@ router.get('/kakao/callback', async (req, res) => {
     const accessToken = await oauthService.exchangeKakaoCode(code);
     const result = await oauthService.handleKakaoLogin(accessToken);
 
-    // Deep link로 리다이렉트 (토큰 포함)
-    const deepLink = `todolist://auth/callback?token=${encodeURIComponent(result.token)}`;
-    res.redirect(deepLink);
+    // User-Agent로 PC 웹 vs 앱 구분
+    const userAgent = req.headers['user-agent'] || '';
+    const isMobileApp = userAgent.includes('wv') || userAgent.includes('Android') && userAgent.includes('Version/');
+
+    if (isMobileApp) {
+      // 앱(WebView)이면 딥링크로 리다이렉트
+      const deepLink = `todolist://auth/callback?token=${encodeURIComponent(result.token)}`;
+      res.redirect(deepLink);
+    } else {
+      // PC 웹이면 토큰을 쿼리 파라미터로 포함해서 프론트엔드로 리다이렉트
+      const frontendUrl = `${process.env.FRONTEND_URL || 'http://13.124.138.204'}/auth/kakao/callback?token=${encodeURIComponent(result.token)}`;
+      res.redirect(frontendUrl);
+    }
 
   } catch (error) {
     console.error('카카오 로그인 오류:', error);
@@ -255,7 +265,7 @@ router.post('/naver', async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-// GET 엔드포인트: 외부 브라우저에서 OAuth 콜백 처리 후 deep link로 리다이렉트
+// GET 엔드포인트: 외부 브라우저에서 OAuth 콜백 처리
 router.get('/naver/callback', async (req, res) => {
   try {
     const { code, state } = req.query;
@@ -275,9 +285,19 @@ router.get('/naver/callback', async (req, res) => {
     const accessToken = await oauthService.exchangeNaverCode(code, state);
     const result = await oauthService.handleNaverLogin(accessToken);
 
-    // Deep link로 리다이렉트 (토큰 포함)
-    const deepLink = `todolist://auth/callback?token=${encodeURIComponent(result.token)}`;
-    res.redirect(deepLink);
+    // User-Agent로 PC 웹 vs 앱 구분
+    const userAgent = req.headers['user-agent'] || '';
+    const isMobileApp = userAgent.includes('wv') || userAgent.includes('Android') && userAgent.includes('Version/');
+
+    if (isMobileApp) {
+      // 앱(WebView)이면 딥링크로 리다이렉트
+      const deepLink = `todolist://auth/callback?token=${encodeURIComponent(result.token)}`;
+      res.redirect(deepLink);
+    } else {
+      // PC 웹이면 토큰을 쿼리 파라미터로 포함해서 프론트엔드로 리다이렉트
+      const frontendUrl = `${process.env.FRONTEND_URL || 'http://13.124.138.204'}/auth/naver/callback?token=${encodeURIComponent(result.token)}`;
+      res.redirect(frontendUrl);
+    }
 
   } catch (error) {
     console.error('네이버 로그인 오류:', error);
