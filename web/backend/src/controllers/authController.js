@@ -421,7 +421,7 @@ router.get('/me', async (req, res) => {
  *                 example: test@example.com
  *               provider:
  *                 type: string
- *                 description: 제공자 (예: kakao, naver, test 등)
+ *                 description: "제공자 (kakao, naver, test 등)"
  *                 example: test
  *     responses:
  *       200:
