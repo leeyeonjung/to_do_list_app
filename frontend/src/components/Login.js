@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import './Login.css';
 
+// Capacitor 환경 감지
+const isCapacitor = typeof window !== 'undefined' && window.Capacitor;
+
 const Login = ({ onLogin, apiBaseUrl }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -17,7 +20,10 @@ const Login = ({ onLogin, apiBaseUrl }) => {
       const kakaoClientId = process.env.REACT_APP_KAKAO_REST_API_KEY;
       if (!kakaoClientId) throw new Error('카카오 REST API 키가 설정되지 않았습니다.');
 
-      const redirectUri = `${FRONT_BASE}/auth/kakao/callback`;
+      // Capacitor 환경에서는 custom scheme 사용, 웹 환경에서는 HTTP URL 사용
+      const redirectUri = isCapacitor 
+        ? 'todolist://auth/kakao/callback'
+        : `${FRONT_BASE}/auth/kakao/callback`;
 
       const kakaoAuthUrl =
         `https://kauth.kakao.com/oauth/authorize` +
@@ -44,7 +50,10 @@ const Login = ({ onLogin, apiBaseUrl }) => {
       const state = Math.random().toString(36).substring(2, 15);
       sessionStorage.setItem('naver_oauth_state', state);
 
-      const redirectUri = `${FRONT_BASE}/auth/naver/callback`;
+      // Capacitor 환경에서는 custom scheme 사용, 웹 환경에서는 HTTP URL 사용
+      const redirectUri = isCapacitor
+        ? 'todolist://auth/naver/callback'
+        : `${FRONT_BASE}/auth/naver/callback`;
 
       const naverAuthUrl =
         `https://nid.naver.com/oauth2.0/authorize` +
