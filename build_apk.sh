@@ -1,19 +1,33 @@
 #!/bin/bash
 set -e
 
-echo "=== 1. frontend 디렉토리 이동 ==="
-cd frontend
+echo "=== 📱 APK Build 시작 ==="
 
-echo "=== 2. React build ==="
-npm run build
+# 날짜/시간 (예: 20251203_1528)
+BUILD_TIME=$(date +"%Y%m%d_%H%M")
 
-echo "=== 3. Capacitor sync ==="
+# 1. 모바일 디렉토리로 이동
+cd mobile
+
+# 2. Capacitor Android Sync (플러그인 동기화만)
+echo "=== 🔄 Capacitor Sync ==="
 npx cap sync android
 
-echo "=== 4. android 이동 ==="
+# 3. Android 프로젝트로 이동
 cd android
 
-echo "=== 5. APK assembleDebug 빌드 ==="
+# 4. APK 빌드
+echo "=== 🏗  APK assembleDebug 빌드 ==="
 ./gradlew assembleDebug
 
+# 5. 기본 APK 경로
+APK_PATH="app/build/outputs/apk/debug/app-debug.apk"
+
+# 6. 날짜 포함 새 이름으로 이동 (기존 app-debug.apk 덮어쓰기 피함)
+FINAL_APK="app/build/outputs/apk/debug/app-debug-${BUILD_TIME}.apk"
+
+mv "$APK_PATH" "$FINAL_APK"
+
 echo "=== 🎉 APK Build 완료! ==="
+echo "📍 최종 APK:"
+echo "$FINAL_APK"
