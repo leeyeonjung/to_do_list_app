@@ -61,13 +61,10 @@ fi
 # Frontend .env
 if [[ "$TARGET" == "f" || "$TARGET" == "fb" ]]; then
     if [ ! -f web/frontend/.env ]; then
-        echo -e "${YELLOW}⚠️ web/frontend/.env 없음 → 생성${NC}"
-        cat > web/frontend/.env << EOF
-REACT_APP_API_URL=/api
-REACT_APP_KAKAO_REST_API_KEY=
-REACT_APP_NAVER_CLIENT_ID=
-EOF
+        echo -e "${YELLOW}⚠️ web/frontend/.env 없음 → 복사${NC}"
+        cp web/frontend/.env.example web/frontend/.env
         echo -e "${GREEN}✔ web/frontend/.env 생성 완료${NC}"
+        echo -e "${YELLOW}⚠️ .env 파일을 수정한 후 다시 실행하세요.${NC}"
         exit 1
     else
         echo -e "${GREEN}✔ web/frontend/.env 확인 완료${NC}"
