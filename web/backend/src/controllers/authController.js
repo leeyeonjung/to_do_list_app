@@ -288,6 +288,10 @@ router.post('/naver', async (req, res) => {
  */
 // GET 엔드포인트: 외부 브라우저에서 OAuth 콜백 처리
 router.get('/naver/callback', async (req, res) => {
+  console.log('=== GET /naver/callback 호출됨 ===');
+  console.log('Query params:', req.query);
+  console.log('Headers:', req.headers);
+  
   try {
     const { code, state } = req.query;
 
@@ -316,7 +320,10 @@ router.get('/naver/callback', async (req, res) => {
     res.redirect(callbackUrl);
 
   } catch (error) {
-    console.error('네이버 로그인 오류:', error);
+    console.error('=== 네이버 로그인 오류 ===');
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    console.error('Full error:', error);
     res.status(401).send(`
       <html>
         <body>
