@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./config/swagger');
+const pool = require('./db');
 const todoRoutes = require('./controllers/todoController');
 const authRoutes = require('./controllers/authController');
 
@@ -62,10 +63,36 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
 });
 
-app.listen(PORT, HOST, () => {
-  console.log(`Server is running on ${HOST}:${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`KAKAO_REDIRECT_URI: ${process.env.KAKAO_REDIRECT_URI || 'NOT SET'}`);
-  console.log(`KAKAO_REST_API_KEY: ${process.env.KAKAO_REST_API_KEY ? 'SET' : 'NOT SET'}`);
-});
+// 데이터베이스 초기화 후 서버 시작
+const startServer = async () => {
+  try {
+    // 데이터베이스 연결 확인
+    await pool.query('SELECT 1');
+    console.log('✅ Database connection verified');
+    
+    // 테이블 초기화 (CREATE TABLE IF NOT EXISTS 사용 - 이미 있으면 생성하지 않음)
+    // 컨테이너를 내렸다 올려도 데이터는 volume에 유지되고, 테이블도 이미 있으면 생성하지 않음
+    const fs = require('fs');
+    const path = require('path');
+    const initSql = fs.readFileSync(
+      path.join(__dirname, 'db', 'init.sql'),
+      'utf8'
+    );
+    await pool.query(initSql);
+    console.log('✅ Database tables initialized (or already exist)');
+    
+    // 서버 시작
+    app.listen(PORT, HOST, () => {
+      console.log(`Server is running on ${HOST}:${PORT}`);
+      console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`KAKAO_REDIRECT_URI: ${process.env.KAKAO_REDIRECT_URI || 'NOT SET'}`);
+      console.log(`KAKAO_REST_API_KEY: ${process.env.KAKAO_REST_API_KEY ? 'SET' : 'NOT SET'}`);
+    });
+  } catch (error) {
+    console.error('❌ Server startup error:', error.message);
+    process.exit(1);
+  }
+};
+
+startServer();
 
