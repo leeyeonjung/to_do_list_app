@@ -34,13 +34,17 @@ class UserService {
    * JWT 토큰 생성
    */
   generateToken(user) {
+    if (!process.env.JWT_SECRET) {
+      throw new Error('JWT_SECRET이 설정되지 않았습니다.');
+    }
+
     const payload = {
       id: user.id,
       email: user.email,
       provider: user.provider
     };
 
-    const secret = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+    const secret = process.env.JWT_SECRET;
     const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
 
     return jwt.sign(payload, secret, { expiresIn });
@@ -50,8 +54,12 @@ class UserService {
    * JWT 토큰 검증
    */
   verifyToken(token) {
+    if (!process.env.JWT_SECRET) {
+      throw new Error('JWT_SECRET이 설정되지 않았습니다.');
+    }
+
     try {
-      const secret = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+      const secret = process.env.JWT_SECRET;
       return jwt.verify(token, secret);
     } catch (error) {
       throw new Error('Invalid token');

@@ -61,6 +61,10 @@ router.post('/kakao', async (req, res) => {
     res.json(result);
   } catch (error) {
     console.error('카카오 로그인 오류:', error);
+    // JWT_SECRET 관련 에러는 400 반환
+    if (error.message && error.message.includes('JWT_SECRET')) {
+      return res.status(400).json({ error: error.message });
+    }
     res.status(401).json({ error: error.message || '카카오 로그인에 실패했습니다.' });
   }
 });
@@ -169,7 +173,9 @@ router.get('/kakao/callback', async (req, res) => {
     console.error('Error message:', error.message);
     console.error('Error stack:', error.stack);
     console.error('Full error:', error);
-    res.status(401).send(`
+    // JWT_SECRET 관련 에러는 400 반환
+    const statusCode = (error.message && error.message.includes('JWT_SECRET')) ? 400 : 401;
+    res.status(statusCode).send(`
       <html>
         <body>
           <h1>로그인 실패</h1>
@@ -197,6 +203,10 @@ router.post('/kakao/callback', async (req, res) => {
 
   } catch (error) {
     console.error('카카오 로그인 오류:', error);
+    // JWT_SECRET 관련 에러는 400 반환
+    if (error.message && error.message.includes('JWT_SECRET')) {
+      return res.status(400).json({ error: error.message });
+    }
     res.status(401).json({ error: error.message || '카카오 로그인에 실패했습니다.' });
   }
 });
@@ -252,6 +262,10 @@ router.post('/naver', async (req, res) => {
     res.json(result);
   } catch (error) {
     console.error('네이버 로그인 오류:', error);
+    // JWT_SECRET 관련 에러는 400 반환
+    if (error.message && error.message.includes('JWT_SECRET')) {
+      return res.status(400).json({ error: error.message });
+    }
     res.status(401).json({ error: error.message || '네이버 로그인에 실패했습니다.' });
   }
 });
@@ -349,7 +363,9 @@ router.get('/naver/callback', async (req, res) => {
     console.error('Error message:', error.message);
     console.error('Error stack:', error.stack);
     console.error('Full error:', error);
-    res.status(401).send(`
+    // JWT_SECRET 관련 에러는 400 반환
+    const statusCode = (error.message && error.message.includes('JWT_SECRET')) ? 400 : 401;
+    res.status(statusCode).send(`
       <html>
         <body>
           <h1>로그인 실패</h1>
@@ -377,6 +393,10 @@ router.post('/naver/callback', async (req, res) => {
 
   } catch (error) {
     console.error('네이버 로그인 오류:', error);
+    // JWT_SECRET 관련 에러는 400 반환
+    if (error.message && error.message.includes('JWT_SECRET')) {
+      return res.status(400).json({ error: error.message });
+    }
     res.status(401).json({ error: error.message || '네이버 로그인에 실패했습니다.' });
   }
 });
@@ -437,6 +457,10 @@ router.get('/me', async (req, res) => {
       provider: user.provider
     });
   } catch (error) {
+    // JWT_SECRET 관련 에러는 400 반환
+    if (error.message && error.message.includes('JWT_SECRET')) {
+      return res.status(400).json({ error: error.message });
+    }
     res.status(401).json({ error: error.message || '인증에 실패했습니다.' });
   }
 });
@@ -527,6 +551,10 @@ router.post('/test-token', (req, res) => {
     });
   } catch (error) {
     console.error('테스트 토큰 발급 오류:', error);
+    // JWT_SECRET 관련 에러는 400 반환
+    if (error.message && error.message.includes('JWT_SECRET')) {
+      return res.status(400).json({ error: error.message });
+    }
     res.status(500).json({ error: error.message || '테스트 토큰 발급에 실패했습니다.' });
   }
 });
