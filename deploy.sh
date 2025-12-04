@@ -81,6 +81,7 @@ echo "📥 환경 변수 로드 중..."
 # Backend .env 로드
 if [[ "$TARGET" == "b" || "$TARGET" == "fb" ]]; then
     if [ -f web/backend/.env ]; then
+        # set -a를 사용하면 모든 변수가 자동으로 export됨
         set -a
         source web/backend/.env
         set +a
@@ -91,6 +92,7 @@ fi
 # Frontend .env 로드
 if [[ "$TARGET" == "f" || "$TARGET" == "fb" ]]; then
     if [ -f web/frontend/.env ]; then
+        # set -a를 사용하면 모든 변수가 자동으로 export됨
         set -a
         source web/frontend/.env
         set +a
