@@ -169,6 +169,16 @@ echo ""
 # ========================================
 echo "🔨 Docker 이미지 빌드 중..."
 
+# Frontend 빌드 시 필요한 환경 변수 준비
+if [[ "$TARGET" == "f" || "$TARGET" == "fb" ]]; then
+    # Frontend .env 파일에서 변수를 다시 로드하여 export
+    if [ -f web/frontend/.env ]; then
+        set -a
+        source web/frontend/.env
+        set +a
+    fi
+fi
+
 if [ "$TARGET" = "b" ]; then
     docker compose build --no-cache backend
 elif [ "$TARGET" = "f" ]; then
@@ -184,6 +194,16 @@ echo ""
 # 7. 컨테이너 실행
 # ========================================
 echo "🚀 컨테이너 실행 중..."
+
+# Frontend 실행 시 필요한 환경 변수 준비
+if [[ "$TARGET" == "f" || "$TARGET" == "fb" ]]; then
+    # Frontend .env 파일에서 변수를 다시 로드하여 export
+    if [ -f web/frontend/.env ]; then
+        set -a
+        source web/frontend/.env
+        set +a
+    fi
+fi
 
 if [ "$TARGET" = "b" ]; then
     docker compose up -d backend
