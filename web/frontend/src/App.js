@@ -5,14 +5,6 @@ import TodoForm from './components/TodoForm';
 import Login from './components/Login';
 import UserProfile from './components/UserProfile';
 import AuthCallback from './components/AuthCallback';
-import { App as CapacitorApp } from '@capacitor/app';
-import { Capacitor } from '@capacitor/core';
-
-// Capacitor 환경 감지 (네이티브 앱에서만 true)
-const isCapacitor =
-  typeof window !== 'undefined' &&
-  typeof window.Capacitor !== 'undefined' &&
-  Capacitor.isNativePlatform();
 
 // API 베이스 URL 계산
 const getApiBaseUrl = () => {
@@ -22,12 +14,7 @@ const getApiBaseUrl = () => {
     return process.env.REACT_APP_API_URL;
   }
 
-  // 2) APK(WebView) 환경용 (외부 IP + /api)
-  if (isCapacitor) {
-    return 'http://13.124.138.204/api';
-  }
-
-  // 3) 개발 환경 기본값
+  // 2) 개발 환경 기본값
   return 'http://localhost:5000/api';
 };
 
@@ -110,126 +97,6 @@ function App() {
     // fetchTodos는 token이 설정된 후 useEffect에서 자동 호출됨
   }, []);
 
-  // Deep link 처리: todolist://auth/callback?token=xxx
-  useEffect(() => {
-    if (!isCapacitor) return;
-
-    // JavaScript에서 호출할 수 있도록 전역 함수 등록
-    window.handleAuthCallback = async (token) => {
-      console.log('Received token from deep link:', token);
-      if (token) {
-        try {
-          // 토큰으로 사용자 정보 가져오기
-          const response = await fetch(`${API_BASE_URL}/auth/me`, {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
-
-          if (!response.ok) {
-            throw new Error('토큰 검증 실패');
-          }
-
-          const userData = await response.json();
-          localStorage.setItem('token', token);
-          localStorage.setItem('user', JSON.stringify(userData));
-          
-          // 상태 업데이트
-          handleLogin(userData, token);
-          
-          // 페이지 경로를 메인으로 변경
-          if (window.location.pathname !== '/') {
-            window.history.replaceState({}, '', '/');
-          }
-          
-          // React 상태 업데이트를 보장하기 위해 약간의 지연 후 확인
-          // 만약 상태가 업데이트되지 않았다면 페이지를 새로고침
-          setTimeout(() => {
-            const savedToken = localStorage.getItem('token');
-            const savedUser = localStorage.getItem('user');
-            if (savedToken === token && savedUser) {
-              // 토큰과 사용자 정보가 저장되어 있지만 상태가 업데이트되지 않았다면 새로고침
-              // 이는 React 상태 업데이트 타이밍 문제를 해결하기 위함
-              try {
-                const parsedUser = JSON.parse(savedUser);
-                if (parsedUser && parsedUser.id) {
-                  // 사용자 정보가 있으면 상태가 업데이트되었을 가능성이 높음
-                  // 하지만 확실하게 하기 위해 한 번 더 확인
-                  console.log('Token delivered successfully, user data:', parsedUser);
-                }
-              } catch (e) {
-                console.error('Failed to parse user data:', e);
-              }
-            }
-          }, 300);
-        } catch (err) {
-          console.error('Deep link 토큰 처리 오류:', err);
-        }
-      }
-    };
-
-    let listenerHandle = null;
-
-    const handleAppUrlOpen = async (event) => {
-      const url = event.url;
-      console.log('Received custom scheme URL:', url);
-
-      // Deep link 처리: todolist://auth/callback?token=xxx
-      if (url.startsWith('todolist://auth/callback')) {
-        try {
-          const urlObj = new URL(url);
-          const token = urlObj.searchParams.get('token');
-
-          if (!token) {
-            console.error('토큰을 받지 못했습니다.');
-            return;
-          }
-
-          // 토큰으로 사용자 정보 가져오기
-          const response = await fetch(`${API_BASE_URL}/auth/me`, {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
-
-          if (!response.ok) {
-            throw new Error('토큰 검증 실패');
-          }
-
-          const userData = await response.json();
-
-          // 로그인 성공
-          localStorage.setItem('token', token);
-          localStorage.setItem('user', JSON.stringify(userData));
-          handleLogin(userData, token);
-          
-          // 페이지 경로를 메인으로 변경
-          if (window.location.pathname !== '/') {
-            window.history.replaceState({}, '', '/');
-          }
-
-        } catch (err) {
-          console.error('Deep link 처리 오류:', err);
-        }
-      }
-    };
-
-    // Capacitor App 리스너 등록 (Promise를 await하여 handle을 받음)
-    (async () => {
-      try {
-        listenerHandle = await CapacitorApp.addListener('appUrlOpen', handleAppUrlOpen);
-      } catch (err) {
-        console.error('Failed to register appUrlOpen listener:', err);
-      }
-    })();
-
-    return () => {
-      // 리스너 제거 (특정 리스너만 제거)
-      if (listenerHandle) {
-        listenerHandle.remove();
-      }
-    };
-  }, [isCapacitor, handleLogin, API_BASE_URL]);
 
   // 인증 상태 확인
   useEffect(() => {

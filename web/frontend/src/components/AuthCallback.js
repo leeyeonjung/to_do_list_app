@@ -71,10 +71,7 @@ const AuthCallback = ({ onLogin, apiBaseUrl }) => {
         // --- 네이버 처리 ---
         else if (path.includes('/naver')) {
           const savedState = sessionStorage.getItem('naver_oauth_state');
-          // state에서 'mobile_' 접두사 제거 후 비교 (모바일 앱에서 온 경우 고려)
-          const savedStateBase = savedState && savedState.startsWith('mobile_') ? savedState.substring(7) : savedState;
-          const receivedStateBase = state && state.startsWith('mobile_') ? state.substring(7) : state;
-          if (receivedStateBase !== savedStateBase) {
+          if (state !== savedState) {
             throw new Error('상태 값이 일치하지 않습니다.');
           }
 
