@@ -4,6 +4,12 @@ const userService = require('../service/userService');
 
 const router = express.Router();
 
+// auth 라우터의 모든 요청 로깅
+router.use((req, res, next) => {
+  console.log(`[AUTH ROUTER] ${req.method} ${req.path}`);
+  next();
+});
+
 /**
  * @swagger
  * /api/auth/kakao:
@@ -100,6 +106,10 @@ router.post('/kakao', async (req, res) => {
  */
 // GET 엔드포인트: 외부 브라우저에서 OAuth 콜백 처리
 router.get('/kakao/callback', async (req, res) => {
+  console.log('=== GET /kakao/callback 호출됨 ===');
+  console.log('Query params:', req.query);
+  console.log('Headers:', req.headers);
+  
   try {
     const { code, state } = req.query;
 
@@ -115,10 +125,13 @@ router.get('/kakao/callback', async (req, res) => {
     }
 
     // 카카오는 OAuth 인증 시 사용한 redirect_uri와 토큰 교환 시 사용하는 redirect_uri가 정확히 일치해야 함
-    // 프론트엔드에서 항상 http://13.124.138.204/api/auth/kakao/callback을 사용하므로
-    // 백엔드에서도 동일한 redirect_uri를 사용해야 함
-    // 카카오톡 로그인의 경우에도 동일한 redirect_uri를 사용 (카카오톡 앱에서 처리 후 서버로 리다이렉트)
-    const redirectUri = process.env.KAKAO_REDIRECT_URI || 'http://13.124.138.204/api/auth/kakao/callback';
+    // 환경 변수에서 가져오거나 PORT와 HOST로 자동 구성
+    const host = process.env.HOST || '0.0.0.0';
+    const port = process.env.PORT || '5000';
+    const backendUrl = process.env.BACKEND_URL || (host === '0.0.0.0' ? 'http://localhost' : `http://${host}`);
+    const backendPort = process.env.BACKEND_PORT || port;
+    const backendBaseUrl = backendPort ? `${backendUrl}:${backendPort}` : backendUrl;
+    const redirectUri = process.env.KAKAO_REDIRECT_URI || `${backendBaseUrl}/api/auth/kakao/callback`;
     
     console.log('카카오 콜백 - 사용할 redirect_uri:', redirectUri);
     console.log('카카오 콜백 - code:', code);
@@ -128,25 +141,20 @@ router.get('/kakao/callback', async (req, res) => {
     const accessToken = await oauthService.exchangeKakaoCode(code, redirectUri);
     const result = await oauthService.handleKakaoLogin(accessToken);
 
-    // state 파라미터로 모바일 앱 감지 (state가 'mobile_'로 시작하면 모바일 앱)
-    // User-Agent는 fallback으로만 사용 (다양한 브라우저 지원)
-    // userAgent는 이미 위에서 선언됨
-    const isMobileApp = (state && state.startsWith('mobile_')) || 
-                        userAgent.includes('wv') || // WebView
-                        (userAgent.includes('android') && !userAgent.includes('chrome') && !userAgent.includes('firefox') && !userAgent.includes('safari')); // Android 브라우저 (크롬/파이어폭스/사파리 제외)
-
-    if (isMobileApp) {
-      // 앱(WebView)이면 딥링크로 리다이렉트
-      const deepLink = `todolist://auth/callback?token=${encodeURIComponent(result.token)}`;
-      res.redirect(deepLink);
-    } else {
-      // PC 웹이면 토큰을 쿼리 파라미터로 포함해서 프론트엔드로 리다이렉트
-      const frontendUrl = `${process.env.FRONTEND_URL || 'http://13.124.138.204'}/auth/kakao/callback?token=${encodeURIComponent(result.token)}`;
-      res.redirect(frontendUrl);
-    }
+    // 프론트엔드 URL 구성 (환경 변수에서 가져오기)
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost';
+    const frontendPort = process.env.FRONTEND_PORT || '3000';
+    const frontendBaseUrl = frontendPort ? `${frontendUrl}:${frontendPort}` : frontendUrl;
+    
+    // 토큰을 쿼리 파라미터로 포함해서 프론트엔드로 리다이렉트
+    const callbackUrl = `${frontendBaseUrl}/auth/kakao/callback?token=${encodeURIComponent(result.token)}`;
+    res.redirect(callbackUrl);
 
   } catch (error) {
-    console.error('카카오 로그인 오류:', error);
+    console.error('=== 카카오 로그인 오류 ===');
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    console.error('Full error:', error);
     res.status(401).send(`
       <html>
         <body>
@@ -294,30 +302,18 @@ router.get('/naver/callback', async (req, res) => {
       `);
     }
 
-    // state에서 플랫폼 정보 추출 (mobile_로 시작하면 모바일 앱)
-    const isMobileState = state.startsWith('mobile_');
-    const actualState = isMobileState ? state.substring(7) : state; // 'mobile_' 제거
-
     // redirectUri는 FE에서 받지 않음
-    const accessToken = await oauthService.exchangeNaverCode(code, actualState);
+    const accessToken = await oauthService.exchangeNaverCode(code, state);
     const result = await oauthService.handleNaverLogin(accessToken);
 
-    // state 파라미터로 모바일 앱 감지 (state가 'mobile_'로 시작하면 모바일 앱)
-    // User-Agent는 fallback으로만 사용 (다양한 브라우저 지원)
-    const userAgent = (req.headers['user-agent'] || '').toLowerCase();
-    const isMobileApp = isMobileState || 
-                        userAgent.includes('wv') || // WebView
-                        (userAgent.includes('android') && !userAgent.includes('chrome') && !userAgent.includes('firefox') && !userAgent.includes('safari')); // Android 브라우저 (크롬/파이어폭스/사파리 제외)
-
-    if (isMobileApp) {
-      // 앱(WebView)이면 딥링크로 리다이렉트
-      const deepLink = `todolist://auth/callback?token=${encodeURIComponent(result.token)}`;
-      res.redirect(deepLink);
-    } else {
-      // PC 웹이면 토큰을 쿼리 파라미터로 포함해서 프론트엔드로 리다이렉트
-      const frontendUrl = `${process.env.FRONTEND_URL || 'http://13.124.138.204'}/auth/naver/callback?token=${encodeURIComponent(result.token)}`;
-      res.redirect(frontendUrl);
-    }
+    // 프론트엔드 URL 구성 (환경 변수에서 가져오기)
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost';
+    const frontendPort = process.env.FRONTEND_PORT || '3000';
+    const frontendBaseUrl = frontendPort ? `${frontendUrl}:${frontendPort}` : frontendUrl;
+    
+    // 토큰을 쿼리 파라미터로 포함해서 프론트엔드로 리다이렉트
+    const callbackUrl = `${frontendBaseUrl}/auth/naver/callback?token=${encodeURIComponent(result.token)}`;
+    res.redirect(callbackUrl);
 
   } catch (error) {
     console.error('네이버 로그인 오류:', error);
