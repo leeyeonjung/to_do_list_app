@@ -16,10 +16,6 @@ const options = {
         url: 'http://localhost:5000',
         description: '개발 서버',
       },
-      {
-        url: 'http://13.124.138.204:5000',
-        description: '프로덕션 서버',
-      },
     ],
     components: {
       securitySchemes: {
