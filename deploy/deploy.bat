@@ -2,6 +2,9 @@
 chcp 65001 >nul
 setlocal enabledelayedexpansion
 
+REM 스크립트가 deploy 폴더에서 실행되므로 루트 디렉토리로 이동
+cd /d "%~dp0\.."
+
 REM 배포 타겟 설정 (기본값: fb)
 set TARGET=%1
 if "%TARGET%"=="" set TARGET=fb
