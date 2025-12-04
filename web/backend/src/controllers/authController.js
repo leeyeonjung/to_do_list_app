@@ -125,13 +125,27 @@ router.get('/kakao/callback', async (req, res) => {
     }
 
     // 카카오는 OAuth 인증 시 사용한 redirect_uri와 토큰 교환 시 사용하는 redirect_uri가 정확히 일치해야 함
-    // 환경 변수에서 가져오거나 PORT와 HOST로 자동 구성
-    const host = process.env.HOST || '0.0.0.0';
-    const port = process.env.PORT || '5000';
-    const backendUrl = process.env.BACKEND_URL || (host === '0.0.0.0' ? 'http://localhost' : `http://${host}`);
-    const backendPort = process.env.BACKEND_PORT || port;
-    const backendBaseUrl = backendPort ? `${backendUrl}:${backendPort}` : backendUrl;
-    const redirectUri = process.env.KAKAO_REDIRECT_URI || `${backendBaseUrl}/api/auth/kakao/callback`;
+    // 환경 변수에서 가져오기 (.env 파일에 필수)
+    let redirectUri = process.env.KAKAO_REDIRECT_URI;
+    
+    if (!redirectUri) {
+      const backendUrl = process.env.BACKEND_URL;
+      const backendPort = process.env.BACKEND_PORT;
+      
+      if (!backendUrl || !backendPort) {
+        throw new Error('BACKEND_URL과 BACKEND_PORT가 .env 파일에 설정되어야 합니다.');
+      }
+      
+      // 포트가 80 또는 443이면 포트 번호 생략
+      let backendBaseUrl;
+      if (backendPort === '80' || backendPort === '443') {
+        backendBaseUrl = backendUrl;
+      } else {
+        backendBaseUrl = `${backendUrl}:${backendPort}`;
+      }
+      
+      redirectUri = `${backendBaseUrl}/api/auth/kakao/callback`;
+    }
     
     console.log('카카오 콜백 - 사용할 redirect_uri:', redirectUri);
     console.log('카카오 콜백 - code:', code);
@@ -310,10 +324,21 @@ router.get('/naver/callback', async (req, res) => {
     const accessToken = await oauthService.exchangeNaverCode(code, state);
     const result = await oauthService.handleNaverLogin(accessToken);
 
-    // 프론트엔드 URL 구성 (환경 변수에서 가져오기)
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost';
-    const frontendPort = process.env.FRONTEND_PORT || '3000';
-    const frontendBaseUrl = frontendPort ? `${frontendUrl}:${frontendPort}` : frontendUrl;
+    // 프론트엔드 URL 구성 (환경 변수에서 가져오기, .env 파일에 필수)
+    const frontendUrl = process.env.FRONTEND_URL;
+    const frontendPort = process.env.FRONTEND_PORT;
+    
+    if (!frontendUrl || !frontendPort) {
+      throw new Error('FRONTEND_URL과 FRONTEND_PORT가 .env 파일에 설정되어야 합니다.');
+    }
+    
+    // 포트가 80 또는 443이면 포트 번호 생략
+    let frontendBaseUrl;
+    if (frontendPort === '80' || frontendPort === '443') {
+      frontendBaseUrl = frontendUrl;
+    } else {
+      frontendBaseUrl = `${frontendUrl}:${frontendPort}`;
+    }
     
     // 토큰을 쿼리 파라미터로 포함해서 프론트엔드로 리다이렉트
     const callbackUrl = `${frontendBaseUrl}/auth/naver/callback?token=${encodeURIComponent(result.token)}`;

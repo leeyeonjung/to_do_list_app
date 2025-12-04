@@ -7,8 +7,13 @@ const todoRoutes = require('./controllers/todoController');
 const authRoutes = require('./controllers/authController');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
-const HOST = process.env.HOST || '0.0.0.0';
+const PORT = process.env.PORT;
+const HOST = process.env.HOST;
+
+if (!PORT || !HOST) {
+  console.error('❌ PORT와 HOST가 .env 파일에 설정되어야 합니다.');
+  process.exit(1);
+}
 
 // Middleware
 app.use(cors());
