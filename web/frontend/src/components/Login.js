@@ -46,7 +46,9 @@ const Login = ({ onLogin, apiBaseUrl }) => {
       sessionStorage.setItem('naver_oauth_state', state);
 
       // Redirect URI는 백엔드의 NAVER_REDIRECT_URI와 일치해야 함
+      // 네이버 개발자 센터에 등록된 Callback URL 중 하나와 정확히 일치해야 함
       const redirectUri = process.env.REACT_APP_NAVER_REDIRECT_URI || 'http://localhost:5000/api/auth/naver/callback';
+      console.log('프론트엔드 - 네이버 redirect_uri:', redirectUri);
 
       const naverAuthUrl =
         `https://nid.naver.com/oauth2.0/authorize` +
