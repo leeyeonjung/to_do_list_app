@@ -61,18 +61,89 @@ function App() {
     };
   }, []);
 
+  // Refresh Token으로 Access Token 갱신
+  const refreshAccessToken = async (refreshToken) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ refreshToken })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        localStorage.setItem('token', result.token);
+        if (result.refreshToken) {
+          localStorage.setItem('refreshToken', result.refreshToken);
+        }
+        if (result.user) {
+          localStorage.setItem('user', JSON.stringify(result.user));
+          setUser(result.user);
+        }
+        setToken(result.token);
+        return result.token;
+      }
+      return null;
+    } catch (err) {
+      console.error('토큰 갱신 실패:', err);
+      return null;
+    }
+  };
+
+  // API 호출 헬퍼 (401 에러 시 자동 토큰 갱신)
+  const fetchWithAuth = async (url, options = {}) => {
+    let currentToken = token || localStorage.getItem('token');
+    
+    const makeRequest = async (tokenToUse) => {
+      const headers = {
+        ...options.headers,
+        'Authorization': `Bearer ${tokenToUse}`
+      };
+      
+      return await fetch(url, {
+        ...options,
+        headers
+      });
+    };
+
+    let response = await makeRequest(currentToken);
+    
+    // 401 에러 발생 시 Refresh Token으로 갱신 후 재시도
+    if (response.status === 401) {
+      const savedRefreshToken = localStorage.getItem('refreshToken');
+      if (savedRefreshToken) {
+        const newToken = await refreshAccessToken(savedRefreshToken);
+        if (newToken) {
+          // 새 토큰으로 재시도
+          response = await makeRequest(newToken);
+          // 새 토큰을 state에도 업데이트
+          if (!token) {
+            setToken(newToken);
+          }
+        } else {
+          // 갱신 실패 시 로그아웃
+          handleLogout();
+          throw new Error('인증이 만료되었습니다. 다시 로그인해주세요.');
+        }
+      } else {
+        handleLogout();
+        throw new Error('인증이 만료되었습니다. 다시 로그인해주세요.');
+      }
+    }
+    
+    return response;
+  };
+
   // 모든 투두 조회
   const fetchTodos = async () => {
-    if (!token) return;
+    if (!token && !localStorage.getItem('token')) return;
     
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/todos`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await fetchWithAuth(`${API_BASE_URL}/todos`);
       if (!response.ok) {
         throw new Error('투두를 불러오는데 실패했습니다.');
       }
@@ -86,8 +157,8 @@ function App() {
   };
 
   // 로그인 처리 (useCallback으로 메모이제이션하여 dependency 문제 해결)
-  const handleLogin = useCallback((userData, tokenData) => {
-    console.log('handleLogin called with:', { userData, tokenData });
+  const handleLogin = useCallback((userData, tokenData, refreshTokenData = null) => {
+    console.log('handleLogin called with:', { userData, tokenData, refreshTokenData });
     setUser(userData);
     setToken(tokenData);
     setCheckingAuth(false);
@@ -95,6 +166,9 @@ function App() {
     // localStorage에 저장 (이미 저장되어 있을 수 있지만 확실히 하기 위해)
     if (tokenData) {
       localStorage.setItem('token', tokenData);
+    }
+    if (refreshTokenData) {
+      localStorage.setItem('refreshToken', refreshTokenData);
     }
     if (userData) {
       localStorage.setItem('user', JSON.stringify(userData));
@@ -113,11 +187,14 @@ function App() {
   useEffect(() => {
     const checkAuth = async () => {
       const savedToken = localStorage.getItem('token');
+      const savedRefreshToken = localStorage.getItem('refreshToken');
       const savedUser = localStorage.getItem('user');
 
-      // 토큰만 있어도 서버에 /auth/me를 물어봐서 사용자 정보를 가져오도록 변경
-      if (savedToken) {
-        setToken(savedToken);
+      // 토큰 또는 Refresh Token이 있으면 인증 확인
+      if (savedToken || savedRefreshToken) {
+        if (savedToken) {
+          setToken(savedToken);
+        }
 
         // 로컬에 저장된 사용자 정보가 있으면 먼저 세팅
         if (savedUser) {
@@ -131,7 +208,17 @@ function App() {
         }
 
         // 토큰 유효성 검증 및 최신 사용자 정보 로드
-        await verifyToken(savedToken);
+        if (savedToken) {
+          await verifyToken(savedToken);
+        } else if (savedRefreshToken) {
+          // Access Token이 없고 Refresh Token만 있는 경우 갱신 시도
+          const newToken = await refreshAccessToken(savedRefreshToken);
+          if (newToken) {
+            await verifyToken(newToken);
+          } else {
+            setCheckingAuth(false);
+          }
+        }
       } else {
         setCheckingAuth(false);
       }
@@ -143,6 +230,7 @@ function App() {
   // 로그아웃 처리
   const handleLogout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
     setUser(null);
     setToken(null);
@@ -150,7 +238,7 @@ function App() {
     setCheckingAuth(false);
   };
 
-  // 토큰 유효성 검증
+  // 토큰 유효성 검증 (만료 시 자동 갱신 시도)
   const verifyToken = async (tokenToVerify) => {
     try {
       const response = await fetch(`${API_BASE_URL}/auth/me`, {
@@ -164,10 +252,54 @@ function App() {
         setUser(userData);
         setCheckingAuth(false);
       } else {
-        // 토큰이 유효하지 않으면 로그아웃
+        // Access Token이 만료된 경우 Refresh Token으로 갱신 시도
+        const savedRefreshToken = localStorage.getItem('refreshToken');
+        if (savedRefreshToken) {
+          const newToken = await refreshAccessToken(savedRefreshToken);
+          if (newToken) {
+            // 새 토큰으로 다시 시도
+            const retryResponse = await fetch(`${API_BASE_URL}/auth/me`, {
+              headers: {
+                'Authorization': `Bearer ${newToken}`
+              }
+            });
+            if (retryResponse.ok) {
+              const userData = await retryResponse.json();
+              setUser(userData);
+              setCheckingAuth(false);
+              return;
+            }
+          }
+        }
+        // Refresh Token도 없거나 갱신 실패 시 로그아웃
         handleLogout();
       }
     } catch (err) {
+      // 네트워크 에러 등 발생 시 Refresh Token으로 갱신 시도
+      const savedRefreshToken = localStorage.getItem('refreshToken');
+      if (savedRefreshToken) {
+        const newToken = await refreshAccessToken(savedRefreshToken);
+        if (newToken) {
+          // 새 토큰으로 다시 시도
+          try {
+            const retryResponse = await fetch(`${API_BASE_URL}/auth/me`, {
+              headers: {
+                'Authorization': `Bearer ${newToken}`
+              }
+            });
+            if (retryResponse.ok) {
+              const userData = await retryResponse.json();
+              setUser(userData);
+              setCheckingAuth(false);
+              return;
+            }
+          } catch (retryErr) {
+            // 재시도도 실패하면 로그아웃
+            handleLogout();
+            return;
+          }
+        }
+      }
       handleLogout();
     }
   };
@@ -175,11 +307,10 @@ function App() {
   // 투두 추가
   const addTodo = async (todoData) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/todos`, {
+      const response = await fetchWithAuth(`${API_BASE_URL}/todos`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(todoData),
       });
@@ -200,11 +331,10 @@ function App() {
   // 투두 수정
   const updateTodo = async (id, todoData) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/todos/${id}`, {
+      const response = await fetchWithAuth(`${API_BASE_URL}/todos/${id}`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(todoData),
       });
@@ -227,11 +357,8 @@ function App() {
   // 투두 삭제
   const deleteTodo = async (id) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/todos/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      const response = await fetchWithAuth(`${API_BASE_URL}/todos/${id}`, {
+        method: 'DELETE'
       });
 
       if (!response.ok) {

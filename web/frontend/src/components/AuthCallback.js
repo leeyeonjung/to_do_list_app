@@ -24,6 +24,8 @@ const AuthCallback = ({ onLogin, apiBaseUrl }) => {
 
         // 토큰이 이미 있으면 (백엔드에서 직접 리다이렉트한 경우)
         if (token) {
+          const refreshToken = urlParams.get('refreshToken');
+          
           // 토큰으로 사용자 정보 가져오기
           const response = await fetch(`${apiBaseUrl}/auth/me`, {
             headers: {
@@ -37,8 +39,11 @@ const AuthCallback = ({ onLogin, apiBaseUrl }) => {
 
           const userData = await response.json();
           localStorage.setItem('token', token);
+          if (refreshToken) {
+            localStorage.setItem('refreshToken', refreshToken);
+          }
           localStorage.setItem('user', JSON.stringify(userData));
-          onLogin(userData, token);
+          onLogin(userData, token, refreshToken || null);
 
           setStatus("success");
           window.location.replace('/');
@@ -96,8 +101,11 @@ const AuthCallback = ({ onLogin, apiBaseUrl }) => {
 
         // --- 로그인 성공 ---
         localStorage.setItem('token', result.token);
+        if (result.refreshToken) {
+          localStorage.setItem('refreshToken', result.refreshToken);
+        }
         localStorage.setItem('user', JSON.stringify(result.user));
-        onLogin(result.user, result.token);
+        onLogin(result.user, result.token, result.refreshToken || null);
 
         setStatus("success");
         window.location.replace('/');

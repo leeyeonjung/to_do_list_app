@@ -165,7 +165,10 @@ router.get('/kakao/callback', async (req, res) => {
     const frontendBaseUrl = frontendPort ? `${frontendUrl}:${frontendPort}` : frontendUrl;
     
     // 토큰을 쿼리 파라미터로 포함해서 프론트엔드로 리다이렉트
-    const callbackUrl = `${frontendBaseUrl}/auth/kakao/callback?token=${encodeURIComponent(result.token)}`;
+    let callbackUrl = `${frontendBaseUrl}/auth/kakao/callback?token=${encodeURIComponent(result.token)}`;
+    if (result.refreshToken) {
+      callbackUrl += `&refreshToken=${encodeURIComponent(result.refreshToken)}`;
+    }
     res.redirect(callbackUrl);
 
   } catch (error) {
@@ -355,7 +358,10 @@ router.get('/naver/callback', async (req, res) => {
     }
     
     // 토큰을 쿼리 파라미터로 포함해서 프론트엔드로 리다이렉트
-    const callbackUrl = `${frontendBaseUrl}/auth/naver/callback?token=${encodeURIComponent(result.token)}`;
+    let callbackUrl = `${frontendBaseUrl}/auth/naver/callback?token=${encodeURIComponent(result.token)}`;
+    if (result.refreshToken) {
+      callbackUrl += `&refreshToken=${encodeURIComponent(result.refreshToken)}`;
+    }
     res.redirect(callbackUrl);
 
   } catch (error) {
@@ -435,8 +441,8 @@ router.get('/me', async (req, res) => {
 
     let user;
     try {
-      // 인메모리 저장소에 사용자가 있는 경우 해당 정보를 우선 사용
-      user = userService.getUserById(decoded.id);
+      // DB에서 사용자 정보 조회
+      user = await userService.getUserById(decoded.id);
     } catch (e) {
       // 테스트 토큰 등으로 인해 저장소에 사용자가 없을 수 있으므로
       // 토큰 payload를 기반으로 최소 사용자 정보를 구성
@@ -556,6 +562,181 @@ router.post('/test-token', (req, res) => {
       return res.status(400).json({ error: error.message });
     }
     res.status(500).json({ error: error.message || '테스트 토큰 발급에 실패했습니다.' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/auth/refresh:
+ *   post:
+ *     summary: Refresh Token으로 새 Access Token 발급
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - refreshToken
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *                 description: Refresh Token
+ *                 example: "refresh_token_string"
+ *     responses:
+ *       200:
+ *         description: 토큰 갱신 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/LoginResponse'
+ *       400:
+ *         description: 잘못된 요청
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Refresh Token이 유효하지 않음
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.post('/refresh', async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(400).json({ error: 'refreshToken이 필요합니다.' });
+    }
+
+    const result = await userService.refreshAccessToken(refreshToken);
+    res.json(result);
+  } catch (error) {
+    console.error('토큰 갱신 오류:', error);
+    res.status(401).json({ error: error.message || '토큰 갱신에 실패했습니다.' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/auth/kakao/refresh:
+ *   post:
+ *     summary: 카카오 OAuth 리프레시 토큰으로 새 Access Token 발급
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - refreshToken
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *                 description: 카카오 OAuth 리프레시 토큰
+ *                 example: "kakao_refresh_token_string"
+ *     responses:
+ *       200:
+ *         description: 토큰 갱신 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/LoginResponse'
+ *       400:
+ *         description: 잘못된 요청
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Refresh Token이 유효하지 않음
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.post('/kakao/refresh', async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(400).json({ error: '카카오 refreshToken이 필요합니다.' });
+    }
+
+    // 카카오 OAuth 리프레시 토큰으로 새 액세스 토큰 받기
+    const newKakaoAccessToken = await oauthService.refreshKakaoToken(refreshToken);
+    
+    // 새 액세스 토큰으로 사용자 정보 조회 및 로그인 처리
+    const result = await oauthService.handleKakaoLogin(newKakaoAccessToken);
+    
+    res.json(result);
+  } catch (error) {
+    console.error('카카오 토큰 갱신 오류:', error);
+    res.status(401).json({ error: error.message || '카카오 토큰 갱신에 실패했습니다.' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/auth/naver/refresh:
+ *   post:
+ *     summary: 네이버 OAuth 리프레시 토큰으로 새 Access Token 발급
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - refreshToken
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *                 description: 네이버 OAuth 리프레시 토큰
+ *                 example: "naver_refresh_token_string"
+ *     responses:
+ *       200:
+ *         description: 토큰 갱신 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/LoginResponse'
+ *       400:
+ *         description: 잘못된 요청
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Refresh Token이 유효하지 않음
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.post('/naver/refresh', async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(400).json({ error: '네이버 refreshToken이 필요합니다.' });
+    }
+
+    // 네이버 OAuth 리프레시 토큰으로 새 액세스 토큰 받기
+    const newNaverAccessToken = await oauthService.refreshNaverToken(refreshToken);
+    
+    // 새 액세스 토큰으로 사용자 정보 조회 및 로그인 처리
+    const result = await oauthService.handleNaverLogin(newNaverAccessToken);
+    
+    res.json(result);
+  } catch (error) {
+    console.error('네이버 토큰 갱신 오류:', error);
+    res.status(401).json({ error: error.message || '네이버 토큰 갱신에 실패했습니다.' });
   }
 });
 

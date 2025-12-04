@@ -146,11 +146,13 @@ class OAuthService {
    */
   async handleKakaoLogin(accessToken) {
     const oauthData = await this.getKakaoUserInfo(accessToken);
-    const user = userService.findOrCreateUser(oauthData);
+    const user = await userService.findOrCreateUser(oauthData);
     const token = userService.generateToken(user);
+    const refreshToken = await userService.generateRefreshToken(user);
 
     return {
       token,
+      refreshToken,
       user: {
         id: user.id,
         email: user.email,
@@ -166,11 +168,13 @@ class OAuthService {
    */
   async handleNaverLogin(accessToken) {
     const oauthData = await this.getNaverUserInfo(accessToken);
-    const user = userService.findOrCreateUser(oauthData);
+    const user = await userService.findOrCreateUser(oauthData);
     const token = userService.generateToken(user);
+    const refreshToken = await userService.generateRefreshToken(user);
 
     return {
       token,
+      refreshToken,
       user: {
         id: user.id,
         email: user.email,
@@ -179,6 +183,66 @@ class OAuthService {
         provider: user.provider
       }
     };
+  }
+
+  /**
+   * 카카오 OAuth 리프레시 토큰으로 새 액세스 토큰 갱신
+   * @param {string} refreshToken - 카카오 OAuth 리프레시 토큰
+   */
+  async refreshKakaoToken(refreshToken) {
+    try {
+      console.log("=== [KAKAO REFRESH TOKEN REQUEST] ===");
+      console.log("refresh_token:", refreshToken);
+      console.log("=====================================");
+
+      const response = await axios.post(
+        'https://kauth.kakao.com/oauth/token',
+        qs.stringify({
+          grant_type: 'refresh_token',
+          client_id: process.env.KAKAO_REST_API_KEY,
+          refresh_token: refreshToken
+        }),
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8'
+          }
+        }
+      );
+
+      return response.data.access_token;
+
+    } catch (error) {
+      console.error("❌ 카카오 리프레시 토큰 갱신 실패:", error.response?.data || error.message);
+      const errorMessage = error.response?.data?.error_description || error.message;
+      throw new Error(`카카오 리프레시 토큰 갱신 실패: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * 네이버 OAuth 리프레시 토큰으로 새 액세스 토큰 갱신
+   * @param {string} refreshToken - 네이버 OAuth 리프레시 토큰
+   */
+  async refreshNaverToken(refreshToken) {
+    try {
+      console.log("=== [NAVER REFRESH TOKEN REQUEST] ===");
+      console.log("refresh_token:", refreshToken);
+      console.log("====================================");
+
+      const response = await axios.get('https://nid.naver.com/oauth2.0/token', {
+        params: {
+          grant_type: 'refresh_token',
+          client_id: process.env.NAVER_CLIENT_ID,
+          client_secret: process.env.NAVER_CLIENT_SECRET,
+          refresh_token: refreshToken
+        }
+      });
+
+      return response.data.access_token;
+
+    } catch (error) {
+      console.error("❌ 네이버 리프레시 토큰 갱신 실패:", error.response?.data || error.message);
+      throw new Error(`네이버 리프레시 토큰 갱신 실패: ${error.message}`);
+    }
   }
 }
 

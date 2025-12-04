@@ -99,7 +99,11 @@ const options = {
           properties: {
             token: {
               type: 'string',
-              description: 'JWT 토큰',
+              description: 'JWT 토큰 (Access Token)',
+            },
+            refreshToken: {
+              type: 'string',
+              description: 'Refresh Token (30일 유효)',
             },
             user: {
               $ref: '#/components/schemas/User',
