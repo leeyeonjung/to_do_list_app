@@ -14,9 +14,23 @@ const Login = ({ onLogin, apiBaseUrl }) => {
       const kakaoClientId = process.env.REACT_APP_KAKAO_REST_API_KEY;
       if (!kakaoClientId) throw new Error('카카오 REST API 키가 설정되지 않았습니다.');
 
-      // Redirect URI는 카카오 개발자 콘솔에 등록된 URI와 정확히 일치해야 함
-      // 백엔드의 KAKAO_REDIRECT_URI와도 일치해야 함
-      const redirectUri = process.env.REACT_APP_KAKAO_REDIRECT_URI || 'http://localhost:5000/api/auth/kakao/callback';
+      // Redirect URI 구성: 직접 지정된 값이 있으면 사용, 없으면 BACKEND_URL + BACKEND_PORT로 자동 구성
+      let redirectUri = process.env.REACT_APP_KAKAO_REDIRECT_URI;
+      if (!redirectUri) {
+        const backendUrl = process.env.REACT_APP_BACKEND_URL;
+        const backendPort = process.env.REACT_APP_BACKEND_PORT;
+        
+        if (!backendUrl || !backendPort) {
+          throw new Error('REACT_APP_BACKEND_URL과 REACT_APP_BACKEND_PORT가 .env 파일에 설정되어야 합니다.');
+        }
+        
+        // 포트가 80 또는 443이면 포트 번호 생략
+        if (backendPort === '80' || backendPort === '443') {
+          redirectUri = `${backendUrl}/api/auth/kakao/callback`;
+        } else {
+          redirectUri = `${backendUrl}:${backendPort}/api/auth/kakao/callback`;
+        }
+      }
       console.log('프론트엔드 - 카카오 redirect_uri:', redirectUri);
 
       const kakaoAuthUrl =
@@ -45,9 +59,23 @@ const Login = ({ onLogin, apiBaseUrl }) => {
       const state = Math.random().toString(36).substring(2, 15);
       sessionStorage.setItem('naver_oauth_state', state);
 
-      // Redirect URI는 백엔드의 NAVER_REDIRECT_URI와 일치해야 함
-      // 네이버 개발자 센터에 등록된 Callback URL 중 하나와 정확히 일치해야 함
-      const redirectUri = process.env.REACT_APP_NAVER_REDIRECT_URI || 'http://localhost:5000/api/auth/naver/callback';
+      // Redirect URI 구성: 직접 지정된 값이 있으면 사용, 없으면 BACKEND_URL + BACKEND_PORT로 자동 구성
+      let redirectUri = process.env.REACT_APP_NAVER_REDIRECT_URI;
+      if (!redirectUri) {
+        const backendUrl = process.env.REACT_APP_BACKEND_URL;
+        const backendPort = process.env.REACT_APP_BACKEND_PORT;
+        
+        if (!backendUrl || !backendPort) {
+          throw new Error('REACT_APP_BACKEND_URL과 REACT_APP_BACKEND_PORT가 .env 파일에 설정되어야 합니다.');
+        }
+        
+        // 포트가 80 또는 443이면 포트 번호 생략
+        if (backendPort === '80' || backendPort === '443') {
+          redirectUri = `${backendUrl}/api/auth/naver/callback`;
+        } else {
+          redirectUri = `${backendUrl}:${backendPort}/api/auth/naver/callback`;
+        }
+      }
       console.log('프론트엔드 - 네이버 redirect_uri:', redirectUri);
 
       const naverAuthUrl =

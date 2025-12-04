@@ -8,14 +8,25 @@ import AuthCallback from './components/AuthCallback';
 
 // API 베이스 URL 계산
 const getApiBaseUrl = () => {
-  // 1) Docker build-time 환경 변수 (권장)
+  // 1) 직접 지정된 API URL이 있으면 사용
   if (process.env.REACT_APP_API_URL) {
-    // 예: "/api"
     return process.env.REACT_APP_API_URL;
   }
 
-  // 2) 개발 환경 기본값
-  return 'http://localhost:5000/api';
+  // 2) BACKEND_URL과 BACKEND_PORT로 자동 구성 (.env에서 필수)
+  const backendUrl = process.env.REACT_APP_BACKEND_URL;
+  const backendPort = process.env.REACT_APP_BACKEND_PORT;
+  
+  if (!backendUrl || !backendPort) {
+    throw new Error('REACT_APP_BACKEND_URL과 REACT_APP_BACKEND_PORT가 .env 파일에 설정되어야 합니다.');
+  }
+  
+  // 포트가 80 또는 443이면 포트 번호 생략
+  if (backendPort === '80' || backendPort === '443') {
+    return `${backendUrl}/api`;
+  }
+  
+  return `${backendUrl}:${backendPort}/api`;
 };
 
 const API_BASE_URL = getApiBaseUrl();
