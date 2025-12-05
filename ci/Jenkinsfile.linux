@@ -2,32 +2,59 @@ pipeline {
     agent { label 'linux_02' }
 
     parameters {
-        string(name: 'ENV', defaultValue: 'dev')
+        string(name: 'ENV', defaultValue: 'prod')
     }
 
     stages {
+
+        /* ============================================================
+           1. Checkout Code
+        ============================================================ */
         stage('Checkout') {
             steps {
                 checkout scm
             }
         }
 
-        stage('Git Pull') {
+        /* ============================================================
+           2. Docker Build (frontend, backend)
+        ============================================================ */
+        stage('Build Docker Images') {
             steps {
-                script {
-                    echo "📥 Pulling latest changes from repository..."
-                    sh "git pull origin main || git pull origin master"
-                }
+                sh """
+                    cd deploy
+                    chmod +x docker_build.sh
+                    ./docker_build.sh ${ENV}
+                """
             }
         }
 
-        stage('Deploy on Linux') {
+        /* ============================================================
+           3. Send Artifacts to PROD Server
+        ============================================================ */
+        stage('Send Artifacts to PROD Server') {
             steps {
-                script {
-                    echo "🚀 Linux Deploy for ENV=${ENV}"
-                    sh "chmod +x deploy/deploy.sh"
-                    sh "echo y | ./deploy/deploy.sh ${ENV}"
-                }
+                sh """
+                    cp docker-compose.yml ubuntu@B2_SERVER:/home/ubuntu/todolist_app/
+                    cp scripts/deploy.sh ubuntu@B2_SERVER:/home/ubuntu/todolist_app/
+                    cp deploy/images/backend.tar.gz ubuntu@B2_SERVER:/home/ubuntu/todolist_app/
+                    cp deploy/images/frontend.tar.gz ubuntu@B2_SERVER:/home/ubuntu/todolist_app/
+                """
+            }
+        }
+
+        /* ============================================================
+           4. Remote Deploy on PROD (B-2)
+        ============================================================ */
+        stage('Execute Remote Deploy') {
+            steps {
+                sh """
+                    ssh ubuntu@B2_SERVER '
+                        cd /home/ubuntu/todolist_app
+                        chmod +x deploy.sh
+                        ./deploy.sh ${ENV}
+                    '
+                """
             }
         }
     }
