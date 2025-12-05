@@ -15,7 +15,6 @@ yarn-error.log*
 # Node / React (FE, BE 공통)
 # ============================
 node_modules/
-package-lock.json
 npm-debug.log
 yarn.lock
 
