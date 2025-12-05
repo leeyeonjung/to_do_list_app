@@ -5,22 +5,32 @@ pipeline {
         choice(
             name: 'ENV',
             choices: ['dev', 'prod'],
-            description: 'Choose deployment environment'
+            description: '배포할 환경을 선택하세요'
         )
     }
 
     environment {
-        // Jenkins Credentials
-        API_URL    = credentials('API_URL')
-        DB_URL     = credentials('DB_URL')
-        JWT_SECRET = credentials('JWT_SECRET')
+        // === Shared Credentials (dev/prod switch) ===
+        JWT_SECRET           = credentials("JWT_SECRET_${ENV.toUpperCase()}")
+        KAKAO_KEY            = credentials("KAKAO_KEY_${ENV.toUpperCase()}")
+        NAVER_CLIENT_ID      = credentials("NAVER_CLIENT_ID_${ENV.toUpperCase()}")
+        NAVER_CLIENT_SECRET  = credentials("NAVER_CLIENT_SECRET_${ENV.toUpperCase()}")
+
+        KAKAO_REDIRECT_URI   = credentials("KAKAO_REDIRECT_URI_${ENV.toUpperCase()}")
+        NAVER_REDIRECT_URI   = credentials("NAVER_REDIRECT_URI_${ENV.toUpperCase()}")
+
+        // === Backend DB Credentials ===
+        DB_HOST              = credentials("DB_HOST_${ENV.toUpperCase()}")
+        DB_USER              = credentials("DB_USER_${ENV.toUpperCase()}")
+        DB_PASS              = credentials("DB_PASS_${ENV.toUpperCase()}")
+        DB_NAME              = credentials("DB_NAME_${ENV.toUpperCase()}")
     }
 
     stages {
 
-        /* ----------------------------------------------------------
-           1. Checkout on Linux_02
-        ---------------------------------------------------------- */
+        /* ---------------------------------------------------------
+           1) Checkout
+        --------------------------------------------------------- */
         stage('Checkout') {
             agent { label 'linux_02' }
             steps {
@@ -28,56 +38,92 @@ pipeline {
             }
         }
 
-        /* ----------------------------------------------------------
-           2. Generate .env on Linux_02
-        ---------------------------------------------------------- */
-        stage('Generate .env') {
+        /* ---------------------------------------------------------
+           2) Backend env 생성
+        --------------------------------------------------------- */
+        stage('Generate Backend env') {
             agent { label 'linux_02' }
             steps {
                 sh """
-                rm -f .env
-                echo "API_URL=${API_URL}" > .env
-                echo "DB_URL=${DB_URL}" >> .env
-                echo "JWT_SECRET=${JWT_SECRET}" >> .env
-                echo "NODE_ENV=${params.ENV}" >> .env
+                echo '[Backend] Generating .env...'
+
+                cat config/.env.shared.template web/backend/.env.backend.template > web/backend/.env.temp
+
+                sed -i 's|{{JWT_SECRET}}|${JWT_SECRET}|g' web/backend/.env.temp
+                sed -i 's|{{KAKAO_KEY}}|${KAKAO_KEY}|g' web/backend/.env.temp
+                sed -i 's|{{NAVER_CLIENT_ID}}|${NAVER_CLIENT_ID}|g' web/backend/.env.temp
+                sed -i 's|{{NAVER_CLIENT_SECRET}}|${NAVER_CLIENT_SECRET}|g' web/backend/.env.temp
+                sed -i 's|{{KAKAO_REDIRECT_URI}}|${KAKAO_REDIRECT_URI}|g' web/backend/.env.temp
+                sed -i 's|{{NAVER_REDIRECT_URI}}|${NAVER_REDIRECT_URI}|g' web/backend/.env.temp
+
+                sed -i 's|{{DB_HOST}}|${DB_HOST}|g' web/backend/.env.temp
+                sed -i 's|{{DB_USER}}|${DB_USER}|g' web/backend/.env.temp
+                sed -i 's|{{DB_PASS}}|${DB_PASS}|g' web/backend/.env.temp
+                sed -i 's|{{DB_NAME}}|${DB_NAME}|g' web/backend/.env.temp
+
+                mv web/backend/.env.temp web/backend/.env
                 """
             }
         }
 
-        /* ----------------------------------------------------------
-           3. Linux Deploy (자동 y 주입)
-        ---------------------------------------------------------- */
-        stage('Linux Deploy') {
+
+        /* ---------------------------------------------------------
+           3) Frontend env 생성
+        --------------------------------------------------------- */
+        stage('Generate Frontend env') {
             agent { label 'linux_02' }
             steps {
                 sh """
-                chmod +x /deploy/deploy.sh
-                yes | /deploy/deploy.sh
+                echo '[Frontend] Generating .env...'
+
+                cat config/.env.shared.template web/frontend/.env.frontend.template > web/frontend/.env.temp
+
+                sed -i 's|{{JWT_SECRET}}|${JWT_SECRET}|g' web/frontend/.env.temp
+                sed -i 's|{{KAKAO_KEY}}|${KAKAO_KEY}|g' web/frontend/.env.temp
+                sed -i 's|{{NAVER_CLIENT_ID}}|${NAVER_CLIENT_ID}|g' web/frontend/.env.temp
+
+                sed -i 's|{{KAKAO_REDIRECT_URI}}|${KAKAO_REDIRECT_URI}|g' web/frontend/.env.temp
+                sed -i 's|{{NAVER_REDIRECT_URI}}|${NAVER_REDIRECT_URI}|g' web/frontend/.env.temp
+
+                mv web/frontend/.env.temp web/frontend/.env
                 """
             }
         }
 
-        /* ----------------------------------------------------------
-           4. Windows Deploy (자동 y 주입)
-        ---------------------------------------------------------- */
-        stage('Windows Deploy') {
-            agent { label 'windows_C' }
+        /* ---------------------------------------------------------
+           4) Linux Deploy
+        --------------------------------------------------------- */
+        stage('Deploy (Linux)') {
+            agent { label 'linux_02' }
             steps {
-                powershell """
-                Write-Output 'Running Windows deployment...'
-                Set-Location 'C:\\deploy'
-                echo y | .\\deploy.bat
+                sh """
+                chmod +x /home/ubuntu/todolist_app/deploy/deploy.sh
+                yes | /home/ubuntu/todolist_app/deploy/deploy.sh
                 """
             }
         }
 
-        /* ----------------------------------------------------------
-           5. Trigger Test Pipeline
-        ---------------------------------------------------------- */
+        /* ---------------------------------------------------------
+           5) Windows Deploy
+        --------------------------------------------------------- */
+        stage('Deploy (Windows)') {
+            agent { label 'windows_01' }
+            steps {
+                bat """
+                echo Windows deploy...
+                cd C:\\Automation\\todolist_app\\deploy
+                echo y | deploy.bat
+                """
+            }
+        }
+
+        /* ---------------------------------------------------------
+           6) Trigger Test Repo Job
+        --------------------------------------------------------- */
         stage('Trigger Test Pipeline') {
             agent { label 'linux_02' }
             steps {
-                build job: 'PLAYWRIGHT_TEST_PIPELINE',
+                build job: 'todolist_test',
                       parameters: [
                           string(name: 'ENV', value: params.ENV)
                       ],
@@ -87,11 +133,7 @@ pipeline {
     }
 
     post {
-        success {
-            echo "✅ Deploy (Linux + Windows) Completed Successfully!"
-        }
-        failure {
-            echo "❌ Deployment Failed."
-        }
+        success { echo "✅ ${params.ENV.toUpperCase()} 배포 완료 + 테스트 Pipeline 실행됨" }
+        failure { echo "❌ 배포 실패" }
     }
 }
