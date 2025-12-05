@@ -165,14 +165,13 @@ echo ""
 # ========================================
 echo "🔨 Docker 이미지 빌드 중..."
 
-# Frontend 빌드 시 필요한 환경 변수 준비 (config/.env만 사용)
-if [[ "$TARGET" == "f" || "$TARGET" == "fb" ]]; then
-    # config/.env에서 변수를 다시 로드하여 export
-    if [ -f config/.env ]; then
-        set -a
-        source config/.env
-        set +a
-    fi
+# Docker compose 빌드 전에 환경 변수 확실히 로드 (config/.env만 사용)
+# Frontend 빌드 시 REACT_APP_ 변수들이 필요하므로 항상 로드
+if [ -f config/.env ]; then
+    set -a
+    source config/.env
+    set +a
+    echo -e "${GREEN}✔ 환경 변수 로드 완료 (빌드용)${NC}"
 fi
 
 if [ "$TARGET" = "b" ]; then
@@ -191,14 +190,13 @@ echo ""
 # ========================================
 echo "🚀 컨테이너 실행 중..."
 
-# Frontend 실행 시 필요한 환경 변수 준비 (config/.env만 사용)
-if [[ "$TARGET" == "f" || "$TARGET" == "fb" ]]; then
-    # config/.env에서 변수를 다시 로드하여 export
-    if [ -f config/.env ]; then
-        set -a
-        source config/.env
-        set +a
-    fi
+# Docker compose 실행 전에 환경 변수 확실히 로드 (config/.env만 사용)
+# 포트 매핑 등에 REACT_APP_ 변수들이 필요하므로 항상 로드
+if [ -f config/.env ]; then
+    set -a
+    source config/.env
+    set +a
+    echo -e "${GREEN}✔ 환경 변수 로드 완료 (실행용)${NC}"
 fi
 
 if [ "$TARGET" = "b" ]; then
@@ -221,6 +219,23 @@ docker compose ps
 echo -e "${GREEN}🎉 배포 완료!${NC}"
 echo ""
 echo "🌐 접속:"
-echo "  Frontend → http://localhost"
-echo "  Backend API → http://localhost:5000/api"
+if [ -n "$REACT_APP_FRONTEND_URL" ] && [ -n "$REACT_APP_FRONTEND_PORT" ]; then
+    if [ "$REACT_APP_FRONTEND_PORT" = "80" ] || [ "$REACT_APP_FRONTEND_PORT" = "443" ]; then
+        echo "  Frontend → ${REACT_APP_FRONTEND_URL}"
+    else
+        echo "  Frontend → ${REACT_APP_FRONTEND_URL}:${REACT_APP_FRONTEND_PORT}"
+    fi
+else
+    echo "  Frontend → http://localhost:3000 (기본값)"
+fi
+
+if [ -n "$REACT_APP_BACKEND_URL" ] && [ -n "$REACT_APP_BACKEND_PORT" ]; then
+    if [ "$REACT_APP_BACKEND_PORT" = "80" ] || [ "$REACT_APP_BACKEND_PORT" = "443" ]; then
+        echo "  Backend API → ${REACT_APP_BACKEND_URL}/api"
+    else
+        echo "  Backend API → ${REACT_APP_BACKEND_URL}:${REACT_APP_BACKEND_PORT}/api"
+    fi
+else
+    echo "  Backend API → http://localhost:5000/api (기본값)"
+fi
 echo ""
