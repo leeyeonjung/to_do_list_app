@@ -26,29 +26,6 @@ build/
 out/
 
 # ============================
-# Capacitor / Android
-# ============================
-# Android build generates huge files — never commit
-frontend/android/.gradle/
-frontend/android/.idea/
-frontend/android/local.properties
-frontend/android/caches/
-frontend/android/build/
-frontend/android/app/build/
-frontend/android/app/release/
-frontend/android/gradle/
-frontend/android/captures/
-frontend/android/.externalNativeBuild/
-
-# Debug APK / Release APK
-*.apk
-*.aab
-
-# Keystore (절대 깃에 올리면 안 됨)
-*.jks
-*.keystore
-
-# ============================
 # Docker
 # ============================
 # Docker Compose local artifacts
