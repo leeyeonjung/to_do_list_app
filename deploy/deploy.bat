@@ -141,22 +141,6 @@ if "%HOST%"=="" (
     echo [오류] HOST가 .env 파일에 설정되지 않았습니다.
     set "hasError=1"
 )
-if "%BACKEND_URL%"=="" (
-    echo [오류] BACKEND_URL이 .env 파일에 설정되지 않았습니다.
-    set "hasError=1"
-)
-if "%BACKEND_PORT%"=="" (
-    echo [오류] BACKEND_PORT가 .env 파일에 설정되지 않았습니다.
-    set "hasError=1"
-)
-if "%FRONTEND_URL%"=="" (
-    echo [오류] FRONTEND_URL이 .env 파일에 설정되지 않았습니다.
-    set "hasError=1"
-)
-if "%FRONTEND_PORT%"=="" (
-    echo [오류] FRONTEND_PORT가 .env 파일에 설정되지 않았습니다.
-    set "hasError=1"
-)
 if "%DB_HOST%"=="" (
     echo [오류] DB_HOST가 .env 파일에 설정되지 않았습니다.
     set "hasError=1"
@@ -247,13 +231,29 @@ REM 5. Docker 이미지 빌드
 REM ========================================
 echo [Docker 이미지 빌드 중]
 
-REM 환경 변수를 docker-compose에 전달하기 위해 명시적으로 설정
+REM Docker compose 빌드 전에 환경 변수 확실히 로드 (config/.env만 사용)
+REM Frontend 빌드 시 REACT_APP_ 변수들이 필요하므로 항상 로드
+if exist "config\.env" (
+    for /f "usebackq eol=# tokens=1,* delims==" %%a in ("config\.env") do (
+        set "key=%%a"
+        set "value=%%b"
+        set "key=!key: =!"
+        set "value=!value: =!"
+        if defined key (
+            if not "!key!"=="" (
+                REM 환경 변수 설정 (공백 제거)
+                set "!key!=!value!"
+            )
+        )
+    )
+    echo [완료] 환경 변수 로드 완료 (빌드용)
+)
+
 if "%TARGET%"=="b" (
     docker compose build --no-cache backend
 ) else if "%TARGET%"=="f" (
     docker compose build --no-cache frontend
 ) else (
-    REM 프론트엔드 빌드 시 필요한 환경 변수들을 명시적으로 전달
     docker compose build --no-cache
 )
 
@@ -269,6 +269,24 @@ REM ========================================
 REM 6. 컨테이너 실행
 REM ========================================
 echo [컨테이너 실행 중]
+
+REM Docker compose 실행 전에 환경 변수 확실히 로드 (config/.env만 사용)
+REM 포트 매핑 등에 REACT_APP_ 변수들이 필요하므로 항상 로드
+if exist "config\.env" (
+    for /f "usebackq eol=# tokens=1,* delims==" %%a in ("config\.env") do (
+        set "key=%%a"
+        set "value=%%b"
+        set "key=!key: =!"
+        set "value=!value: =!"
+        if defined key (
+            if not "!key!"=="" (
+                REM 환경 변수 설정 (공백 제거)
+                set "!key!=!value!"
+            )
+        )
+    )
+    echo [완료] 환경 변수 로드 완료 (실행용)
+)
 
 if "%TARGET%"=="b" (
     docker compose up -d backend postgres
@@ -302,28 +320,28 @@ echo [접속 정보]
 
 set "hasError=0"
 
-if "%FRONTEND_URL%"=="" (
-    echo [경고] FRONTEND_URL이 .env 파일에 설정되지 않았습니다.
+if "%REACT_APP_FRONTEND_URL%"=="" (
+    echo [경고] REACT_APP_FRONTEND_URL이 .env 파일에 설정되지 않았습니다.
     set "hasError=1"
 )
-if "%FRONTEND_PORT%"=="" (
-    echo [경고] FRONTEND_PORT가 .env 파일에 설정되지 않았습니다.
+if "%REACT_APP_FRONTEND_PORT%"=="" (
+    echo [경고] REACT_APP_FRONTEND_PORT가 .env 파일에 설정되지 않았습니다.
     set "hasError=1"
 )
-if "%BACKEND_URL%"=="" (
-    echo [경고] BACKEND_URL이 .env 파일에 설정되지 않았습니다.
+if "%REACT_APP_BACKEND_URL%"=="" (
+    echo [경고] REACT_APP_BACKEND_URL이 .env 파일에 설정되지 않았습니다.
     set "hasError=1"
 )
-if "%BACKEND_PORT%"=="" (
-    echo [경고] BACKEND_PORT가 .env 파일에 설정되지 않았습니다.
+if "%REACT_APP_BACKEND_PORT%"=="" (
+    echo [경고] REACT_APP_BACKEND_PORT가 .env 파일에 설정되지 않았습니다.
     set "hasError=1"
 )
 
 if "%hasError%"=="0" (
-    echo   Frontend - %FRONTEND_URL%:%FRONTEND_PORT%
-    echo   Backend API - %BACKEND_URL%:%BACKEND_PORT%/api
+    echo   Frontend - %REACT_APP_FRONTEND_URL%:%REACT_APP_FRONTEND_PORT%
+    echo   Backend API - %REACT_APP_BACKEND_URL%:%REACT_APP_BACKEND_PORT%/api
 ) else (
-    echo   .env 파일에서 FRONTEND_URL, FRONTEND_PORT, BACKEND_URL, BACKEND_PORT를 설정해주세요.
+    echo   .env 파일에서 REACT_APP_FRONTEND_URL, REACT_APP_FRONTEND_PORT, REACT_APP_BACKEND_URL, REACT_APP_BACKEND_PORT를 설정해주세요.
 )
 echo.
 
