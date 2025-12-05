@@ -43,7 +43,14 @@ REM 1. .env 파일 확인
 REM ========================================
 echo [환경 변수 파일 확인]
 
-REM Backend .env
+REM config/.env 확인 (공통 설정)
+if not exist "config\.env" (
+    echo [경고] config\.env 파일이 없습니다. (선택 사항)
+) else (
+    echo [완료] config\.env 확인 완료
+)
+
+REM Backend .env 확인
 if "%TARGET%"=="b" goto :check_backend_env
 if "%TARGET%"=="fb" goto :check_backend_env
 goto :check_frontend_env
@@ -51,7 +58,7 @@ goto :check_frontend_env
 :check_backend_env
 if not exist "web\backend\.env" (
     echo [오류] web\backend\.env 파일이 없습니다.
-    echo web\backend\.env.example을 복사하여 web\backend\.env를 생성하고 설정한 후 다시 실행하세요.
+    echo web\backend\.env.backend.template을 복사하여 web\backend\.env를 생성하고 설정한 후 다시 실행하세요.
     exit /b 1
 ) else (
     echo [완료] web\backend\.env 확인 완료
@@ -65,7 +72,7 @@ goto :load_env
 :check_frontend_env_file
 if not exist "web\frontend\.env" (
     echo [오류] web\frontend\.env 파일이 없습니다.
-    echo web\frontend\.env.example을 복사하여 web\frontend\.env를 생성하고 설정한 후 다시 실행하세요.
+    echo web\frontend\.env.frontend.template을 복사하여 web\frontend\.env를 생성하고 설정한 후 다시 실행하세요.
     exit /b 1
 ) else (
     echo [완료] web\frontend\.env 확인 완료
@@ -75,7 +82,7 @@ goto :load_env
 :check_frontend_env_cont
 if not exist "web\frontend\.env" (
     echo [오류] web\frontend\.env 파일이 없습니다.
-    echo web\frontend\.env.example을 복사하여 web\frontend\.env를 생성하고 설정한 후 다시 실행하세요.
+    echo web\frontend\.env.frontend.template을 복사하여 web\frontend\.env를 생성하고 설정한 후 다시 실행하세요.
     exit /b 1
 ) else (
     echo [완료] web\frontend\.env 확인 완료
@@ -85,11 +92,28 @@ if not exist "web\frontend\.env" (
 echo.
 
 REM ========================================
-REM 2. .env 파일에서 환경 변수 로드
+REM 2. .env 파일에서 환경 변수 로드 (계층적)
 REM ========================================
 echo [환경 변수 로드 중]
 
-REM Backend .env 로드
+REM 1단계: config/.env 로드 (공통 설정, 우선순위 낮음)
+if exist "config\.env" (
+    for /f "usebackq eol=# tokens=1,* delims==" %%a in ("config\.env") do (
+        set "key=%%a"
+        set "value=%%b"
+        set "key=!key: =!"
+        set "value=!value: =!"
+        if defined key (
+            if not "!key!"=="" (
+                REM 환경 변수 설정 (공백 제거)
+                set "!key!=!value!"
+            )
+        )
+    )
+    echo [완료] config\.env 로드 완료
+)
+
+REM 2단계: Backend .env 로드 (서비스별 설정, 우선순위 높음, 덮어쓰기)
 if "%TARGET%"=="b" goto :load_backend_env
 if "%TARGET%"=="fb" goto :load_backend_env
 goto :load_frontend_env
@@ -103,16 +127,16 @@ if exist "web\backend\.env" (
         set "value=!value: =!"
         if defined key (
             if not "!key!"=="" (
-                REM 환경 변수 설정 (공백 제거)
+                REM 환경 변수 설정 (공백 제거) - config/.env의 값을 덮어씀
                 set "!key!=!value!"
             )
         )
     )
-    echo [완료] Backend .env 로드 완료
+    echo [완료] web\backend\.env 로드 완료
 )
 
 :load_frontend_env
-if "%TARGET%"=="f" goto :check_docker
+if "%TARGET%"=="f" goto :load_frontend_env_file
 if "%TARGET%"=="fb" goto :load_frontend_env_cont
 goto :check_docker
 
@@ -125,12 +149,29 @@ if exist "web\frontend\.env" (
         set "value=!value: =!"
         if defined key (
             if not "!key!"=="" (
-                REM 환경 변수 설정 (공백 제거)
+                REM 환경 변수 설정 (공백 제거) - config/.env의 값을 덮어씀
                 set "!key!=!value!"
             )
         )
     )
-    echo [완료] Frontend .env 로드 완료
+    echo [완료] web\frontend\.env 로드 완료
+)
+
+:load_frontend_env_file
+if exist "web\frontend\.env" (
+    for /f "usebackq eol=# tokens=1,* delims==" %%a in ("web\frontend\.env") do (
+        set "key=%%a"
+        set "value=%%b"
+        set "key=!key: =!"
+        set "value=!value: =!"
+        if defined key (
+            if not "!key!"=="" (
+                REM 환경 변수 설정 (공백 제거) - config/.env의 값을 덮어씀
+                set "!key!=!value!"
+            )
+        )
+    )
+    echo [완료] web\frontend\.env 로드 완료
 )
 
 :check_docker

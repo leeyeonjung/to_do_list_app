@@ -1,4 +1,14 @@
-require('dotenv').config();
+const path = require('path');
+
+// 계층적 환경 변수 로딩
+// 1단계: config/.env 로드 (공통 설정, 우선순위 낮음)
+const configEnvPath = process.env.CONFIG_ENV_PATH || path.join(__dirname, '../../../config/.env');
+require('dotenv').config({ path: configEnvPath });
+
+// 2단계: web/backend/.env 로드 (서비스별 설정, 우선순위 높음, 덮어쓰기)
+// 컨테이너 내에서는 env_file로 환경 변수가 로드되므로 dotenv는 선택적으로 사용
+const backendEnvPath = process.env.BACKEND_ENV_PATH || path.join(__dirname, '../.env');
+require('dotenv').config({ path: backendEnvPath });
 const express = require('express');
 const cors = require('cors');
 const swaggerUi = require('swagger-ui-express');

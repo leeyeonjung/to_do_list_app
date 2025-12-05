@@ -49,26 +49,44 @@ echo ""
 # ========================================
 echo "🔍 환경 변수 파일 확인..."
 
-# Backend .env
+# config/.env 확인 (공통 설정, 선택 사항)
+if [ ! -f config/.env ]; then
+    echo -e "${YELLOW}⚠️ config/.env 없음 (선택 사항)${NC}"
+else
+    echo -e "${GREEN}✔ config/.env 확인 완료${NC}"
+fi
+
+# Backend .env 확인
 if [[ "$TARGET" == "b" || "$TARGET" == "fb" ]]; then
     if [ ! -f web/backend/.env ]; then
         echo -e "${YELLOW}⚠️ web/backend/.env 없음 → 복사${NC}"
-        cp web/backend/.env.example web/backend/.env
-        echo -e "${GREEN}✔ web/backend/.env 생성 완료${NC}"
-        exit 1
+        if [ -f web/backend/.env.backend.template ]; then
+            cp web/backend/.env.backend.template web/backend/.env
+            echo -e "${GREEN}✔ web/backend/.env 생성 완료${NC}"
+            echo -e "${YELLOW}⚠️ .env 파일을 수정한 후 다시 실행하세요.${NC}"
+            exit 1
+        else
+            echo -e "${RED}❌ web/backend/.env 파일이 없습니다.${NC}"
+            exit 1
+        fi
     else
         echo -e "${GREEN}✔ web/backend/.env 확인 완료${NC}"
     fi
 fi
 
-# Frontend .env
+# Frontend .env 확인
 if [[ "$TARGET" == "f" || "$TARGET" == "fb" ]]; then
     if [ ! -f web/frontend/.env ]; then
         echo -e "${YELLOW}⚠️ web/frontend/.env 없음 → 복사${NC}"
-        cp web/frontend/.env.example web/frontend/.env
-        echo -e "${GREEN}✔ web/frontend/.env 생성 완료${NC}"
-        echo -e "${YELLOW}⚠️ .env 파일을 수정한 후 다시 실행하세요.${NC}"
-        exit 1
+        if [ -f web/frontend/.env.frontend.template ]; then
+            cp web/frontend/.env.frontend.template web/frontend/.env
+            echo -e "${GREEN}✔ web/frontend/.env 생성 완료${NC}"
+            echo -e "${YELLOW}⚠️ .env 파일을 수정한 후 다시 실행하세요.${NC}"
+            exit 1
+        else
+            echo -e "${RED}❌ web/frontend/.env 파일이 없습니다.${NC}"
+            exit 1
+        fi
     else
         echo -e "${GREEN}✔ web/frontend/.env 확인 완료${NC}"
     fi
@@ -77,29 +95,36 @@ fi
 echo ""
 
 # ========================================
-# 2. .env 파일에서 환경 변수 로드
+# 2. .env 파일에서 환경 변수 로드 (계층적)
 # ========================================
 echo "📥 환경 변수 로드 중..."
 
-# Backend .env 로드
+# 1단계: config/.env 로드 (공통 설정, 우선순위 낮음)
+if [ -f config/.env ]; then
+    # set -a를 사용하면 모든 변수가 자동으로 export됨
+    set -a
+    source config/.env
+    set +a
+    echo -e "${GREEN}✔ config/.env 로드 완료${NC}"
+fi
+
+# 2단계: Backend .env 로드 (서비스별 설정, 우선순위 높음, 덮어쓰기)
 if [[ "$TARGET" == "b" || "$TARGET" == "fb" ]]; then
     if [ -f web/backend/.env ]; then
-        # set -a를 사용하면 모든 변수가 자동으로 export됨
         set -a
         source web/backend/.env
         set +a
-        echo -e "${GREEN}✔ Backend .env 로드 완료${NC}"
+        echo -e "${GREEN}✔ web/backend/.env 로드 완료${NC}"
     fi
 fi
 
-# Frontend .env 로드
+# 3단계: Frontend .env 로드 (서비스별 설정, 우선순위 높음, 덮어쓰기)
 if [[ "$TARGET" == "f" || "$TARGET" == "fb" ]]; then
     if [ -f web/frontend/.env ]; then
-        # set -a를 사용하면 모든 변수가 자동으로 export됨
         set -a
         source web/frontend/.env
         set +a
-        echo -e "${GREEN}✔ Frontend .env 로드 완료${NC}"
+        echo -e "${GREEN}✔ web/frontend/.env 로드 완료${NC}"
     fi
 fi
 
@@ -174,7 +199,12 @@ echo "🔨 Docker 이미지 빌드 중..."
 
 # Frontend 빌드 시 필요한 환경 변수 준비
 if [[ "$TARGET" == "f" || "$TARGET" == "fb" ]]; then
-    # Frontend .env 파일에서 변수를 다시 로드하여 export
+    # 계층적 .env 파일에서 변수를 다시 로드하여 export
+    if [ -f config/.env ]; then
+        set -a
+        source config/.env
+        set +a
+    fi
     if [ -f web/frontend/.env ]; then
         set -a
         source web/frontend/.env
@@ -200,7 +230,12 @@ echo "🚀 컨테이너 실행 중..."
 
 # Frontend 실행 시 필요한 환경 변수 준비
 if [[ "$TARGET" == "f" || "$TARGET" == "fb" ]]; then
-    # Frontend .env 파일에서 변수를 다시 로드하여 export
+    # 계층적 .env 파일에서 변수를 다시 로드하여 export
+    if [ -f config/.env ]; then
+        set -a
+        source config/.env
+        set +a
+    fi
     if [ -f web/frontend/.env ]; then
         set -a
         source web/frontend/.env

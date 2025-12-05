@@ -1,0 +1,97 @@
+pipeline {
+    agent none
+
+    parameters {
+        choice(
+            name: 'ENV',
+            choices: ['dev', 'prod'],
+            description: 'Choose deployment environment'
+        )
+    }
+
+    environment {
+        // Jenkins Credentials
+        API_URL    = credentials('API_URL')
+        DB_URL     = credentials('DB_URL')
+        JWT_SECRET = credentials('JWT_SECRET')
+    }
+
+    stages {
+
+        /* ----------------------------------------------------------
+           1. Checkout on Linux_02
+        ---------------------------------------------------------- */
+        stage('Checkout') {
+            agent { label 'linux_02' }
+            steps {
+                checkout scm
+            }
+        }
+
+        /* ----------------------------------------------------------
+           2. Generate .env on Linux_02
+        ---------------------------------------------------------- */
+        stage('Generate .env') {
+            agent { label 'linux_02' }
+            steps {
+                sh """
+                rm -f .env
+                echo "API_URL=${API_URL}" > .env
+                echo "DB_URL=${DB_URL}" >> .env
+                echo "JWT_SECRET=${JWT_SECRET}" >> .env
+                echo "NODE_ENV=${params.ENV}" >> .env
+                """
+            }
+        }
+
+        /* ----------------------------------------------------------
+           3. Linux Deploy (자동 y 주입)
+        ---------------------------------------------------------- */
+        stage('Linux Deploy') {
+            agent { label 'linux_02' }
+            steps {
+                sh """
+                chmod +x /deploy/deploy.sh
+                yes | /deploy/deploy.sh
+                """
+            }
+        }
+
+        /* ----------------------------------------------------------
+           4. Windows Deploy (자동 y 주입)
+        ---------------------------------------------------------- */
+        stage('Windows Deploy') {
+            agent { label 'windows_C' }
+            steps {
+                powershell """
+                Write-Output 'Running Windows deployment...'
+                Set-Location 'C:\\deploy'
+                echo y | .\\deploy.bat
+                """
+            }
+        }
+
+        /* ----------------------------------------------------------
+           5. Trigger Test Pipeline
+        ---------------------------------------------------------- */
+        stage('Trigger Test Pipeline') {
+            agent { label 'linux_02' }
+            steps {
+                build job: 'PLAYWRIGHT_TEST_PIPELINE',
+                      parameters: [
+                          string(name: 'ENV', value: params.ENV)
+                      ],
+                      wait: false
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ Deploy (Linux + Windows) Completed Successfully!"
+        }
+        failure {
+            echo "❌ Deployment Failed."
+        }
+    }
+}
