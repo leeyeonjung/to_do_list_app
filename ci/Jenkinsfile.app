@@ -67,5 +67,30 @@ pipeline {
                 """
             }
         }
+
+        /* -------------------------------------------------------------
+           4. Run Test Job
+        ------------------------------------------------------------- */
+        stage('Run Test Job') {
+            steps {
+                script {
+                    echo "🧪 Running todolist_test Jenkins job..."
+                    build job: 'todolist_test', wait: true
+                }
+            }
+        }
+
+        /* -------------------------------------------------------------
+           5. Stop DEV Containers
+        ------------------------------------------------------------- */
+        stage('Stop DEV Containers') {
+            steps {
+                sh """
+                    cd "${WORKSPACE}"
+                    docker compose -f docker-compose.yml down --remove-orphans || true
+                    docker rm -f todo-backend todo-frontend todo-postgres 2>/dev/null || true
+                """
+            }
+        }
     }
 }
