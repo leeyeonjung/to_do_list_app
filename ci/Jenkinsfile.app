@@ -7,10 +7,12 @@ pipeline {
         --------------------------------------------------------- */
         stage('Load DEV Credentials') {
             agent { label 'linux_02' }
+            environment {
+                DEV_ENV_FILE = credentials("todolist_dev_env")
+            }
             steps {
                 script {
                     echo "📦 Loading DEV credentials..."
-                    DEV_ENV_FILE = credentials("todolist_dev_env")
                     DEV_MAP = readProperties text: DEV_ENV_FILE
                 }
             }
@@ -93,10 +95,12 @@ pipeline {
         --------------------------------------------------------- */
         stage('Load PROD Credentials') {
             agent { label 'linux_02' }
+            environment {
+                PROD_ENV_FILE = credentials("todolist_prod_env")
+            }
             steps {
                 script {
                     echo "📦 All tests passed. Loading PROD credentials..."
-                    PROD_ENV_FILE = credentials("todolist_prod_env")
                     PROD_MAP = readProperties text: PROD_ENV_FILE
                 }
             }
