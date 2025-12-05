@@ -1,12 +1,13 @@
 const path = require('path');
 
-// 계층적 환경 변수 로딩
-// 1단계: config/.env 로드 (공통 설정, 우선순위 낮음)
+// 환경 변수 로딩
+// 1단계: config/.env 로드 (모든 환경 변수 포함)
+// 컨테이너 내에서는 env_file로 환경 변수가 로드되므로 dotenv는 선택적으로 사용
 const configEnvPath = process.env.CONFIG_ENV_PATH || path.join(__dirname, '../../../config/.env');
 require('dotenv').config({ path: configEnvPath });
 
-// 2단계: web/backend/.env 로드 (서비스별 설정, 우선순위 높음, 덮어쓰기)
-// 컨테이너 내에서는 env_file로 환경 변수가 로드되므로 dotenv는 선택적으로 사용
+// 2단계: web/backend/.env 로드 (선택사항, 추가 설정만 포함)
+// web/backend/.env는 비어있거나 추가 설정만 포함
 const backendEnvPath = process.env.BACKEND_ENV_PATH || path.join(__dirname, '../.env');
 require('dotenv').config({ path: backendEnvPath });
 const express = require('express');
@@ -95,8 +96,8 @@ const startServer = async () => {
     app.listen(PORT, HOST, () => {
       console.log(`Server is running on ${HOST}:${PORT}`);
       console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-      console.log(`KAKAO_REDIRECT_URI: ${process.env.KAKAO_REDIRECT_URI || 'NOT SET'}`);
-      console.log(`KAKAO_REST_API_KEY: ${process.env.KAKAO_REST_API_KEY ? 'SET' : 'NOT SET'}`);
+      console.log(`KAKAO_REDIRECT_URI: ${process.env.REACT_APP_KAKAO_REDIRECT_URI || 'NOT SET'}`);
+      console.log(`KAKAO_REST_API_KEY: ${process.env.REACT_APP_KAKAO_REST_API_KEY ? 'SET' : 'NOT SET'}`);
     });
   } catch (error) {
     console.error('❌ Server startup error:', error.message);

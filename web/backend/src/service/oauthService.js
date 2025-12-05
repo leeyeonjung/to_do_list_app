@@ -6,11 +6,12 @@ class OAuthService {
 
   constructor() {
     // 각 서비스별 redirectUri를 분리 (fallback 절대 사용 X)
-    this.kakaoRedirectUri = process.env.KAKAO_REDIRECT_URI;
-    this.kakaoRestApiKey = process.env.KAKAO_REST_API_KEY;
-    this.naverRedirectUri = process.env.NAVER_REDIRECT_URI;
-    this.naverClientId = process.env.NAVER_CLIENT_ID;
-    this.naverClientSecret = process.env.NAVER_CLIENT_SECRET;
+    // REACT_APP_ 변수 사용 (config/.env에서 정의)
+    this.kakaoRedirectUri = process.env.REACT_APP_KAKAO_REDIRECT_URI;
+    this.kakaoRestApiKey = process.env.REACT_APP_KAKAO_REST_API_KEY;
+    this.naverRedirectUri = process.env.REACT_APP_NAVER_REDIRECT_URI;
+    this.naverClientId = process.env.REACT_APP_NAVER_CLIENT_ID;
+    this.naverClientSecret = process.env.REACT_APP_NAVER_CLIENT_SECRET;
 
     if (!this.kakaoRedirectUri) {
       console.error("❌ KAKAO_REDIRECT_URI 누락됨!");

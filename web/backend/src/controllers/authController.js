@@ -130,14 +130,15 @@ router.get('/kakao/callback', async (req, res) => {
 
     // 카카오는 OAuth 인증 시 사용한 redirect_uri와 토큰 교환 시 사용하는 redirect_uri가 정확히 일치해야 함
     // 환경 변수에서 가져오기 (.env 파일에 필수)
-    let redirectUri = process.env.KAKAO_REDIRECT_URI;
+    // REACT_APP_ 변수 사용 (config/.env에서 정의)
+    let redirectUri = process.env.REACT_APP_KAKAO_REDIRECT_URI;
     
     if (!redirectUri) {
-      const backendUrl = process.env.BACKEND_URL;
-      const backendPort = process.env.BACKEND_PORT;
+      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+      const backendPort = process.env.REACT_APP_BACKEND_PORT;
       
       if (!backendUrl || !backendPort) {
-        throw new Error('BACKEND_URL과 BACKEND_PORT가 .env 파일에 설정되어야 합니다.');
+        throw new Error('REACT_APP_BACKEND_URL과 REACT_APP_BACKEND_PORT가 .env 파일에 설정되어야 합니다.');
       }
       
       // 포트가 80 또는 443이면 포트 번호 생략
@@ -160,8 +161,9 @@ router.get('/kakao/callback', async (req, res) => {
     const result = await oauthService.handleKakaoLogin(accessToken);
 
     // 프론트엔드 URL 구성 (환경 변수에서 가져오기)
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost';
-    const frontendPort = process.env.FRONTEND_PORT || '3000';
+    // REACT_APP_ 변수 사용 (config/.env에서 정의)
+    const frontendUrl = process.env.REACT_APP_FRONTEND_URL || 'http://localhost';
+    const frontendPort = process.env.REACT_APP_FRONTEND_PORT || '3000';
     const frontendBaseUrl = frontendPort ? `${frontendUrl}:${frontendPort}` : frontendUrl;
     
     // 토큰을 쿼리 파라미터로 포함해서 프론트엔드로 리다이렉트
@@ -342,11 +344,12 @@ router.get('/naver/callback', async (req, res) => {
     const result = await oauthService.handleNaverLogin(accessToken);
 
     // 프론트엔드 URL 구성 (환경 변수에서 가져오기, .env 파일에 필수)
-    const frontendUrl = process.env.FRONTEND_URL;
-    const frontendPort = process.env.FRONTEND_PORT;
+    // REACT_APP_ 변수 사용 (config/.env에서 정의)
+    const frontendUrl = process.env.REACT_APP_FRONTEND_URL;
+    const frontendPort = process.env.REACT_APP_FRONTEND_PORT;
     
     if (!frontendUrl || !frontendPort) {
-      throw new Error('FRONTEND_URL과 FRONTEND_PORT가 .env 파일에 설정되어야 합니다.');
+      throw new Error('REACT_APP_FRONTEND_URL과 REACT_APP_FRONTEND_PORT가 .env 파일에 설정되어야 합니다.');
     }
     
     // 포트가 80 또는 443이면 포트 번호 생략
