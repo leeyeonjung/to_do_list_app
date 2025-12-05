@@ -1,18 +1,48 @@
 #!/bin/bash
 set -e
 
-ENV=$1
+# 버전 값 (필수)
+VERSION=${1:-}
+# 환경 값 (선택, 없으면 버전만 사용)
+ENV=${2:-}
 
-echo "🔨 Building Docker images for ENV=$ENV"
+if [ -z "$VERSION" ]; then
+    echo "❌ ERROR: Version is required"
+    echo "Usage: $0 <version> [env]"
+    echo "Example: $0 v1.0.0"
+    echo "Example: $0 v1.0.0 dev"
+    exit 1
+fi
 
-mkdir -p images
+# 태그 생성 (환경이 있으면 버전-환경, 없으면 버전만)
+if [ -n "$ENV" ]; then
+    TAG="${VERSION}-${ENV}"
+    echo "🔨 Building Docker images for VERSION=$VERSION, ENV=$ENV"
+else
+    TAG="$VERSION"
+    echo "🔨 Building Docker images for VERSION=$VERSION"
+fi
+
+# 현재 스크립트 기준 프로젝트 경로 계산
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+
+BACKEND_DIR="$PROJECT_ROOT/web/backend"
+FRONTEND_DIR="$PROJECT_ROOT/web/frontend"
+OUTPUT_DIR="$PROJECT_ROOT/deploy/images"
+
+mkdir -p "$OUTPUT_DIR"
 
 echo "📦 Building Backend Image..."
-docker build -t todolist_backend:$ENV ../backend
-docker save todolist_backend:$ENV | gzip > images/backend.tar.gz
+docker build -t todolist_backend:$TAG "$BACKEND_DIR"
+
+echo "📦 Saving Backend Image..."
+docker save todolist_backend:$TAG | gzip > "$OUTPUT_DIR/backend-${TAG}.tar.gz"
 
 echo "📦 Building Frontend Image..."
-docker build -t todolist_frontend:$ENV ../frontend
-docker save todolist_frontend:$ENV | gzip > images/frontend.tar.gz
+docker build -t todolist_frontend:$TAG "$FRONTEND_DIR"
 
-echo "✅ Docker Images Exported to deploy/images/"
+echo "📦 Saving Frontend Image..."
+docker save todolist_frontend:$TAG | gzip > "$OUTPUT_DIR/frontend-${TAG}.tar.gz"
+
+echo "✅ Images saved in $OUTPUT_DIR"

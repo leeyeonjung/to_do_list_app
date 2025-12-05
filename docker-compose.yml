@@ -6,7 +6,7 @@ services:
     ports:
       - "${REACT_APP_BACKEND_PORT}:${PORT}"
     env_file:
-      - ./config/.env
+      - ${ENV_FILE}
     environment:
       - DB_HOST=postgres
     depends_on:
@@ -30,7 +30,7 @@ services:
         - REACT_APP_NAVER_REDIRECT_URI=${REACT_APP_NAVER_REDIRECT_URI}
     container_name: todo-frontend
     env_file:
-      - ./config/.env
+      - ${ENV_FILE}
     ports:
       - "${REACT_APP_FRONTEND_PORT}:80"
     depends_on:

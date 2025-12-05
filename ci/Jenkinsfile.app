@@ -1,58 +1,67 @@
 pipeline {
-    agent none
+
+    agent { label 'linux_02' }
+
+    environment {
+        DEV_ENV_FILE = credentials("todolist_dev_env")
+    }
 
     stages {
 
-        /* ============================================================
-           1. Load DEV Credentials (.env-dev)
-        ============================================================ */
-        stage('Load DEV Credentials') {
-            agent { label 'linux_02' }
-            environment {
-                DEV_ENV_FILE = credentials("todolist_dev_env")
+        /* -------------------------------------------------------------
+           0. Checkout
+        ------------------------------------------------------------- */
+        stage('Checkout') {
+            steps {
+                checkout scm
             }
+        }
+
+        /* -------------------------------------------------------------
+           1. Build Docker Images (dev)
+        ------------------------------------------------------------- */
+        stage('Build Docker Images (DEV)') {
             steps {
                 script {
-                    echo "📦 Loading DEV credentials..."
-                    DEV_MAP = readProperties file: DEV_ENV_FILE
+                    // package.json에서 버전 읽기
+                    def backendVersion = readJSON file: "web/backend/package.json"
+                    def version = backendVersion.version
+                    def versionTag = "v${version}"
+                    
+                    echo "📦 Building images with version: ${versionTag}"
+                    
+                    sh """
+                        cd "${WORKSPACE}"
+                        chmod +x scripts/docker_build.sh
+                        ./scripts/docker_build.sh ${versionTag} dev
+                    """
                 }
             }
         }
 
-        /* ============================================================
-           2. Generate DEV .env
-        ============================================================ */
-        stage('Generate DEV .env') {
-            agent { label 'linux_02' }
+        /* -------------------------------------------------------------
+           2. Load DEV Credentials & Generate .env (DEV)
+        ------------------------------------------------------------- */
+        stage('Load DEV Credentials & Generate .env') {
             steps {
                 script {
-                    echo "📝 Creating deploy/.env (DEV)"
+                    echo "📦 Loading DEV Credential file..."
+                    def DEV_MAP = readProperties file: DEV_ENV_FILE
+                    
+                    echo "📝 Writing deploy/.env-dev (DEV)..."
                     def text = DEV_MAP.collect { k, v -> "${k}=${v}" }.join("\n")
-                    writeFile file: "deploy/.env", text: text
+                    writeFile file: "deploy/.env-dev", text: text
                 }
             }
         }
 
-        /* ============================================================
-           3. Run DEV Container (B-1)
-        ============================================================ */
-        stage('Run DEV Container') {
-            agent { label 'linux_02' }
+        /* -------------------------------------------------------------
+           3. Run DEV Containers
+        ------------------------------------------------------------- */
+        stage('Run DEV Containers') {
             steps {
-                script {
-                    echo "🚀 Running DEV Container..."
-                }
                 sh """
                     cd "${WORKSPACE}"
-
-                    echo "📥 Pulling latest main branch..."
-                    git pull origin main || git pull origin master
-
-                    echo "🔨 Building docker images..."
-                    chmod +x scripts/docker_build.sh
-                    ./scripts/docker_build.sh
-
-                    echo "🚀 Starting DEV container..."
                     chmod +x scripts/deploy.sh
                     ./scripts/deploy.sh dev
                 """
