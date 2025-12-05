@@ -1,0 +1,19 @@
+pipeline {
+    agent { label 'linux_02' }
+
+    parameters {
+        string(name: 'ENV', defaultValue: 'dev')
+    }
+
+    stages {
+        stage('Deploy on Linux') {
+            steps {
+                script {
+                    echo "🚀 Linux Deploy for ENV=${ENV}"
+                    sh "chmod +x deploy/deploy.sh"
+                    sh "echo y | ./deploy/deploy.sh ${ENV}"
+                }
+            }
+        }
+    }
+}

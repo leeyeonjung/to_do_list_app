@@ -1,0 +1,19 @@
+pipeline {
+    agent { label 'windows_01' }
+
+    parameters {
+        string(name: 'ENV', defaultValue: 'dev')
+    }
+
+    stages {
+        stage('Windows Deploy') {
+            steps {
+                bat """
+                echo Deploying on Windows: %ENV%
+                cd deploy
+                echo Y | deploy.bat %ENV%
+                """
+            }
+        }
+    }
+}
