@@ -30,7 +30,11 @@ export ENV_FILE="$ENV_FILE"
 # DEV → 개발 서버 테스트 용 컨테이너 실행
 # PROD → 운영 서버에서 사용
 echo "🛑 Stopping existing containers..."
-docker compose -f "$COMPOSE_FILE" down || true
+docker compose -f "$COMPOSE_FILE" down --remove-orphans || true
+
+# 기존 컨테이너가 남아있을 경우 강제 제거
+echo "🧹 Cleaning up any remaining containers..."
+docker rm -f todo-backend todo-frontend todo-postgres 2>/dev/null || true
 
 echo "🔄 Starting containers for ENV=$ENV..."
 docker compose -f "$COMPOSE_FILE" up -d --build
