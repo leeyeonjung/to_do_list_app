@@ -6,6 +6,21 @@ pipeline {
     }
 
     stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Git Pull') {
+            steps {
+                script {
+                    echo "📥 Pulling latest changes from repository..."
+                    sh "git pull origin main || git pull origin master"
+                }
+            }
+        }
+
         stage('Deploy on Linux') {
             steps {
                 script {
