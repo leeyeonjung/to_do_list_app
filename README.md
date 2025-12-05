@@ -46,13 +46,11 @@ todolist_app/
 │   │   │   ├── middleware/           # 인증 미들웨어
 │   │   │   ├── db/                   # 데이터베이스 초기화
 │   │   │   └── index.js              # 진입점
-│   │   ├── .env.backend.template     # Backend 전용 env 템플릿
 │   │   └── Dockerfile
 │   └── frontend/
 │       ├── src/
 │       │   ├── components/           # React 컴포넌트
 │       │   └── App.js
-│       ├── .env.frontend.template    # Frontend 전용 env 템플릿
 │       └── Dockerfile
 ├── deploy/
 │   ├── deploy.sh                     # Linux 배포 스크립트
@@ -64,19 +62,21 @@ todolist_app/
 
 ## 🔧 환경 변수 설정
 
-이 프로젝트는 **계층적 .env 구조**를 사용합니다:
+이 프로젝트는 **단일 .env 구조**를 사용합니다:
 
 ### 구조
-1. **`config/.env`** - 공통/공유 환경 변수 (먼저 로드, 낮은 우선순위)
-2. **`web/backend/.env`** - Backend 전용 변수 (config/.env 덮어쓰기)
-3. **`web/frontend/.env`** - Frontend 전용 변수 (config/.env 덮어쓰기)
+1. **`config/.env`** - 모든 환경 변수 (Backend와 Frontend 공통 사용)
+   - `REACT_APP_*` 접두사 변수: React 앱에서 사용 (Frontend 빌드 시 필요)
+   - 일반 변수: Backend에서 사용 (NODE_ENV, PORT, HOST, DB_* 등)
+   - 템플릿 파일: `config/.env.template` 참고
 
-### 환경 변수 우선순위
+### 환경 변수 특징
 
-환경 변수 로딩 시:
-1. `config/.env`가 먼저 로드됨 (기본값)
-2. 서비스별 `.env` 파일이 기본값을 덮어씀
-3. Docker Compose의 `environment` 섹션이 최우선순위
+- **모든 변수는 `config/.env`에 정의**: Backend와 Frontend 모두 동일한 파일 사용
+- **REACT_APP_ 접두사**: React 앱에서 접근 가능한 변수는 `REACT_APP_` 접두사 필수
+- **Backend 코드**: `REACT_APP_` 접두사 변수도 사용 (예: `REACT_APP_BACKEND_URL`)
+- **Docker Compose**: `env_file`로 `config/.env` 자동 로드
+- **빌드 시**: Frontend 빌드 시 `REACT_APP_` 변수들이 build args로 전달됨
 
 **참고:** Docker 실행 시 `docker-compose.yml`의 `environment: - DB_HOST=postgres`가 자동으로 설정되어 `.env` 파일 값을 덮어씁니다.
 
@@ -182,8 +182,12 @@ http://localhost:5000/api-docs
 
 ### 환경 변수 로딩
 
-Backend는 계층적 dotenv 로딩을 사용합니다:
-1. `config/.env` 로드 (공통)
-2. `web/backend/.env` 로드 (공통 값 덮어쓰기)
+Backend는 `config/.env`만 사용합니다:
+1. `config/.env` 로드 (모든 환경 변수 포함)
+2. `web/backend/.env`는 선택사항 (추가 설정만 포함, 현재 비어있음)
 
-이를 통해 공유 구성을 유지하면서 서비스별 오버라이드를 허용합니다.
+Frontend도 `config/.env`만 사용합니다:
+1. 빌드 시: `REACT_APP_` 변수들이 Docker build args로 전달
+2. 런타임: 이미 빌드된 정적 파일 사용 (런타임 환경 변수 불필요)
+
+모든 환경 변수는 `config/.env`에서 중앙 관리됩니다.
