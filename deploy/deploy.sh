@@ -60,7 +60,7 @@ fi
 if [[ "$TARGET" == "b" || "$TARGET" == "fb" ]]; then
     if [ ! -f config/.env ]; then
         echo -e "${RED}❌ config/.env 파일이 필요합니다.${NC}"
-        echo -e "${YELLOW}⚠️ config/.env.shared.template을 참고하여 config/.env를 생성하세요.${NC}"
+        echo -e "${YELLOW}⚠️ config/.env.template을 참고하여 config/.env를 생성하세요.${NC}"
         exit 1
     fi
     echo -e "${GREEN}✔ Backend 환경 변수는 config/.env에서 사용됩니다${NC}"
@@ -70,7 +70,7 @@ fi
 if [[ "$TARGET" == "f" || "$TARGET" == "fb" ]]; then
     if [ ! -f config/.env ]; then
         echo -e "${RED}❌ config/.env 파일이 필요합니다.${NC}"
-        echo -e "${YELLOW}⚠️ config/.env.shared.template을 참고하여 config/.env를 생성하세요.${NC}"
+        echo -e "${YELLOW}⚠️ config/.env.template을 참고하여 config/.env를 생성하세요.${NC}"
         exit 1
     fi
     echo -e "${GREEN}✔ Frontend 환경 변수는 config/.env에서 사용됩니다${NC}"

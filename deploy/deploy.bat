@@ -59,7 +59,7 @@ goto :check_frontend_env
 REM Backend는 config/.env만 사용
 if not exist "config\.env" (
     echo [오류] config\.env 파일이 필요합니다.
-    echo config\.env.shared.template을 참고하여 config\.env를 생성하세요.
+    echo config\.env.template을 참고하여 config\.env를 생성하세요.
     exit /b 1
 ) else (
     echo [완료] Backend 환경 변수는 config\.env에서 사용됩니다
@@ -74,7 +74,7 @@ goto :load_env
 :check_frontend_config
 if not exist "config\.env" (
     echo [오류] config\.env 파일이 필요합니다.
-    echo config\.env.shared.template을 참고하여 config\.env를 생성하세요.
+    echo config\.env.template을 참고하여 config\.env를 생성하세요.
     exit /b 1
 ) else (
     echo [완료] Frontend 환경 변수는 config\.env에서 사용됩니다

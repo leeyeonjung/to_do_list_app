@@ -36,7 +36,7 @@ Kakao, Naver OAuth 인증을 지원하는 React, Node.js, Express, PostgreSQL �
 ```
 todolist_app/
 ├── config/
-│   └── .env.shared.template          # 공통 환경 변수 템플릿
+│   └── .env.template                 # 공통 환경 변수 템플릿
 ├── web/
 │   ├── backend/
 │   │   ├── src/

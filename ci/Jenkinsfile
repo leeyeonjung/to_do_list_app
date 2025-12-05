@@ -47,7 +47,7 @@ pipeline {
                 sh """
                 echo '[Backend] Generating .env...'
 
-                cat config/.env.shared.template web/backend/.env.backend.template > web/backend/.env.temp
+                cat config/.env.template web/backend/.env.backend.template > web/backend/.env.temp
 
                 sed -i 's|{{JWT_SECRET}}|${JWT_SECRET}|g' web/backend/.env.temp
                 sed -i 's|{{KAKAO_KEY}}|${KAKAO_KEY}|g' web/backend/.env.temp
@@ -76,7 +76,7 @@ pipeline {
                 sh """
                 echo '[Frontend] Generating .env...'
 
-                cat config/.env.shared.template web/frontend/.env.frontend.template > web/frontend/.env.temp
+                cat config/.env.template web/frontend/.env.frontend.template > web/frontend/.env.temp
 
                 sed -i 's|{{JWT_SECRET}}|${JWT_SECRET}|g' web/frontend/.env.temp
                 sed -i 's|{{KAKAO_KEY}}|${KAKAO_KEY}|g' web/frontend/.env.temp
