@@ -81,13 +81,19 @@ pipeline {
         }
 
         /* -------------------------------------------------------------
-           5. Stop DEV Containers
+           5. Stop DEV Containers  (✔ A 방식 적용)
         ------------------------------------------------------------- */
         stage('Stop DEV Containers') {
             steps {
                 sh """
                     cd "${WORKSPACE}"
-                    docker compose -f docker-compose.yml down --remove-orphans || true
+
+                    echo "🛑 Stopping containers using deploy/.env-dev ..."
+
+                    # ✔ Stop 단계에서도 .env-dev 를 로드하여 Invalid proto / variable not set 해결
+                    docker --env-file deploy/.env-dev compose -f docker-compose.yml down --remove-orphans || true
+
+                    # safety cleanup
                     docker rm -f todo-backend todo-frontend todo-postgres 2>/dev/null || true
                 """
             }
