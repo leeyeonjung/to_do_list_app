@@ -3,7 +3,7 @@ pipeline {
     agent { label 'linux_02' }
 
     environment {
-        DEV_ENV_FILE = credentials("todolist_dev_env")
+        DEV_ENV_FILE = credentials("todolist_dev/todolist_dev_env")
     }
 
     stages {
