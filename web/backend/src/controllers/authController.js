@@ -537,9 +537,21 @@ router.get('/me', async (req, res) => {
  *                 token:
  *                   type: string
  *                   description: 발급된 JWT 토큰
+ *                 refreshToken:
+ *                   type: string
+ *                   nullable: true
+ *                   description: Refresh Token (DB에 사용자가 있는 경우에만 발급, 30일 유효)
  *                 payload:
  *                   type: object
  *                   description: 토큰에 들어간 페이로드
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                     email:
+ *                       type: string
+ *                       nullable: true
+ *                     provider:
+ *                       type: string
  *       400:
  *         description: 잘못된 요청
  *         content:
@@ -553,7 +565,7 @@ router.get('/me', async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/test-token', (req, res) => {
+router.post('/test-token', async (req, res) => {
   try {
     // 프로덕션 환경에서는 막아두기
     if (process.env.NODE_ENV === 'production' && process.env.ALLOW_TEST_TOKEN_IN_PROD !== 'true') {
@@ -575,14 +587,34 @@ router.post('/test-token', (req, res) => {
     };
 
     const token = userService.generateToken(payload);
+    
+    // Refresh Token 발급 (DB에 저장)
+    // test-token은 실제 사용자가 없을 수 있으므로, 임시 사용자 객체 생성
+    // refreshToken을 발급하기 위해 최소한의 사용자 정보가 필요함
+    let refreshToken = null;
+    try {
+      // DB에서 사용자 조회 시도
+      const user = await userService.getUserById(id);
+      refreshToken = await userService.generateRefreshToken(user);
+    } catch (error) {
+      // 사용자가 없는 경우 (테스트 환경) refreshToken 없이 진행
+      console.log("[DEBUG] TEST TOKEN - User not found, skipping refresh token generation");
+    }
 
     // Debug: 테스트 토큰 생성 로그 (이미 generateToken에서 로그 출력됨)
     console.log("[DEBUG] TEST TOKEN ENDPOINT - Token generated for payload:", JSON.stringify(payload, null, 2));
 
-    res.json({
+    const response = {
       token,
       payload
-    });
+    };
+    
+    // refreshToken이 생성된 경우에만 추가
+    if (refreshToken) {
+      response.refreshToken = refreshToken;
+    }
+
+    res.json(response);
   } catch (error) {
     console.error('테스트 토큰 발급 오류:', error);
     // JWT_SECRET 관련 에러는 400 반환
@@ -620,7 +652,16 @@ router.post('/test-token', (req, res) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/LoginResponse'
+ *               type: object
+ *               properties:
+ *                 token:
+ *                   type: string
+ *                   description: JWT Access Token (기존 토큰 또는 새로 발급된 토큰)
+ *                 refreshed:
+ *                   type: boolean
+ *                   description: 토큰이 갱신되었는지 여부 (true: 새로 발급됨, false: 기존 토큰 유효)
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
  *       400:
  *         description: 잘못된 요청
  *         content:
