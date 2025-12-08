@@ -587,16 +587,52 @@ router.post('/test-token', async (req, res) => {
     const token = userService.generateToken(payload);
     
     // Refresh Token 발급 (DB에 저장)
-    // test-token은 실제 사용자가 없을 수 있으므로, 임시 사용자 객체 생성
-    // refreshToken을 발급하기 위해 최소한의 사용자 정보가 필요함
+    // test-token은 실제 사용자가 없을 수 있으므로, 없으면 자동 생성
     let refreshToken = null;
+    let user = null;
     try {
       // DB에서 사용자 조회 시도
-      const user = await userService.getUserById(id);
-      refreshToken = await userService.generateRefreshToken(user);
+      user = await userService.getUserById(id);
     } catch (error) {
-      // 사용자가 없는 경우 (테스트 환경) refreshToken 없이 진행
-      console.log("[DEBUG] TEST TOKEN - User not found, skipping refresh token generation");
+      // 사용자가 없는 경우 자동 생성
+      console.log("[DEBUG] TEST TOKEN - User not found, creating new user");
+      try {
+        const userRepository = require('../repository/userRepository');
+        user = await userRepository.create({
+          oauthId: id.toString(),
+          provider: provider || 'test',
+          email: email || null,
+          nickname: `테스트 사용자 ${id}`,
+          profileImage: null
+        });
+        console.log("[DEBUG] TEST TOKEN - User created with DB id:", user.id);
+        // JWT payload의 id를 DB에서 생성된 실제 id로 업데이트
+        // 하지만 원래 요청한 id를 유지하기 위해 payload는 그대로 둠
+      } catch (createError) {
+        // 사용자 생성 실패 (예: 중복 키 에러 - 이미 존재하는 경우)
+        if (createError.message.includes('이미 등록된 사용자') || createError.code === '23505') {
+          // 중복 키 에러인 경우, oauthId와 provider로 다시 조회
+          const userRepository = require('../repository/userRepository');
+          user = await userRepository.findByOAuthId(id.toString(), provider || 'test');
+          if (user) {
+            console.log("[DEBUG] TEST TOKEN - User found by oauthId:", user.id);
+          } else {
+            console.log("[DEBUG] TEST TOKEN - Failed to create/find user:", createError.message);
+          }
+        } else {
+          console.log("[DEBUG] TEST TOKEN - Failed to create user:", createError.message);
+        }
+      }
+    }
+    
+    // 사용자가 있으면 refreshToken 발급
+    if (user) {
+      try {
+        refreshToken = await userService.generateRefreshToken(user);
+        console.log("[DEBUG] TEST TOKEN - Refresh token generated");
+      } catch (error) {
+        console.log("[DEBUG] TEST TOKEN - Failed to generate refresh token:", error.message);
+      }
     }
 
     // Debug: 테스트 토큰 생성 로그 (이미 generateToken에서 로그 출력됨)
