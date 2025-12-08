@@ -71,6 +71,28 @@ class OAuthService {
         }
       );
 
+      // Debug: 카카오 토큰 응답 전체 로그 (토큰 값 제외)
+      const responseDataWithoutTokens = { ...response.data };
+      if (responseDataWithoutTokens.access_token) {
+        responseDataWithoutTokens.access_token = "***REDACTED***";
+      }
+      if (responseDataWithoutTokens.refresh_token) {
+        responseDataWithoutTokens.refresh_token = "***REDACTED***";
+      }
+      console.log("[DEBUG] KAKAO TOKEN RESPONSE:", JSON.stringify(responseDataWithoutTokens, null, 2));
+      
+      if (response.data.access_token) {
+        console.log("[DEBUG] KAKAO ACCESS TOKEN: RECEIVED");
+      } else {
+        console.log("[DEBUG] KAKAO ACCESS TOKEN: NOT RECEIVED");
+      }
+      
+      if (response.data.refresh_token) {
+        console.log("[DEBUG] KAKAO REFRESH TOKEN: RECEIVED");
+      } else {
+        console.log("[DEBUG] KAKAO REFRESH TOKEN: NOT RECEIVED");
+      }
+
       // 응답 검증
       if (!response.data || !response.data.access_token) {
         console.error("❌ 카카오 응답 데이터:", response.data);
@@ -119,6 +141,28 @@ class OAuthService {
         }
       });
 
+      // Debug: 네이버 토큰 응답 전체 로그 (토큰 값 제외)
+      const responseDataWithoutTokens = { ...response.data };
+      if (responseDataWithoutTokens.access_token) {
+        responseDataWithoutTokens.access_token = "***REDACTED***";
+      }
+      if (responseDataWithoutTokens.refresh_token) {
+        responseDataWithoutTokens.refresh_token = "***REDACTED***";
+      }
+      console.log("[DEBUG] NAVER TOKEN RESPONSE:", JSON.stringify(responseDataWithoutTokens, null, 2));
+      
+      if (response.data.access_token) {
+        console.log("[DEBUG] NAVER ACCESS TOKEN: RECEIVED");
+      } else {
+        console.log("[DEBUG] NAVER ACCESS TOKEN: NOT RECEIVED");
+      }
+      
+      if (response.data.refresh_token) {
+        console.log("[DEBUG] NAVER REFRESH TOKEN: RECEIVED");
+      } else {
+        console.log("[DEBUG] NAVER REFRESH TOKEN: NOT RECEIVED");
+      }
+
       // 응답 검증
       if (!response.data || !response.data.access_token) {
         console.error("❌ 네이버 응답 데이터:", response.data);
@@ -137,6 +181,32 @@ class OAuthService {
         || error.response?.data?.error 
         || error.message;
       throw new Error(`네이버 토큰 교환 실패: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * 카카오 OAuth Access Token 유효성 검증
+   */
+  async verifyKakaoToken(accessToken) {
+    try {
+      const response = await axios.get('https://kapi.kakao.com/v1/user/access_token_info', {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+
+      console.log("[DEBUG] KAKAO TOKEN VERIFICATION RESPONSE:", JSON.stringify(response.data, null, 2));
+      
+      return {
+        valid: true,
+        expiresIn: response.data.expires_in,
+        appId: response.data.app_id,
+        id: response.data.id
+      };
+    } catch (error) {
+      console.log("[DEBUG] KAKAO TOKEN VERIFICATION FAILED:", error.response?.data || error.message);
+      if (error.response?.status === 401) {
+        return { valid: false, reason: 'Invalid or expired token' };
+      }
+      throw new Error(`카카오 토큰 검증 실패: ${error.message}`);
     }
   }
 
@@ -171,6 +241,39 @@ class OAuthService {
   }
 
   /**
+   * 네이버 OAuth Access Token 유효성 검증
+   */
+  async verifyNaverToken(accessToken) {
+    try {
+      const response = await axios.get('https://openapi.naver.com/v1/nid/me', {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+
+      console.log("[DEBUG] NAVER TOKEN VERIFICATION RESPONSE:", JSON.stringify(response.data, null, 2));
+      
+      if (response.data.resultcode === '00' && response.data.response) {
+        return {
+          valid: true,
+          id: response.data.response.id,
+          email: response.data.response.email,
+          nickname: response.data.response.nickname
+        };
+      } else {
+        return {
+          valid: false,
+          reason: response.data.message || 'Invalid token'
+        };
+      }
+    } catch (error) {
+      console.log("[DEBUG] NAVER TOKEN VERIFICATION FAILED:", error.response?.data || error.message);
+      if (error.response?.status === 401) {
+        return { valid: false, reason: 'Invalid or expired token' };
+      }
+      throw new Error(`네이버 토큰 검증 실패: ${error.message}`);
+    }
+  }
+
+  /**
    * 네이버 OAuth 사용자 정보
    */
   async getNaverUserInfo(accessToken) {
@@ -198,10 +301,17 @@ class OAuthService {
    * 카카오 로그인 처리
    */
   async handleKakaoLogin(accessToken) {
+    // Debug: 카카오 OAuth access token 로그
+    console.log("[DEBUG] KAKAO LOGIN - OAuth Access Token received");
+    
     const oauthData = await this.getKakaoUserInfo(accessToken);
     const user = await userService.findOrCreateUser(oauthData);
     const token = userService.generateToken(user);
     const refreshToken = await userService.generateRefreshToken(user);
+
+    // Debug: 생성된 JWT 및 Refresh Token 로그
+    console.log("[DEBUG] KAKAO LOGIN - JWT TOKEN GENERATED");
+    console.log("[DEBUG] KAKAO LOGIN - REFRESH TOKEN GENERATED");
 
     return {
       token,
@@ -220,10 +330,17 @@ class OAuthService {
    * 네이버 로그인 처리
    */
   async handleNaverLogin(accessToken) {
+    // Debug: 네이버 OAuth access token 로그
+    console.log("[DEBUG] NAVER LOGIN - OAuth Access Token received");
+    
     const oauthData = await this.getNaverUserInfo(accessToken);
     const user = await userService.findOrCreateUser(oauthData);
     const token = userService.generateToken(user);
     const refreshToken = await userService.generateRefreshToken(user);
+
+    // Debug: 생성된 JWT 및 Refresh Token 로그
+    console.log("[DEBUG] NAVER LOGIN - JWT TOKEN GENERATED");
+    console.log("[DEBUG] NAVER LOGIN - REFRESH TOKEN GENERATED");
 
     return {
       token,
@@ -272,6 +389,28 @@ class OAuthService {
           }
         }
       );
+
+      // Debug: 카카오 리프레시 토큰 응답 전체 로그 (토큰 값 제외)
+      const responseDataWithoutTokens = { ...response.data };
+      if (responseDataWithoutTokens.access_token) {
+        responseDataWithoutTokens.access_token = "***REDACTED***";
+      }
+      if (responseDataWithoutTokens.refresh_token) {
+        responseDataWithoutTokens.refresh_token = "***REDACTED***";
+      }
+      console.log("[DEBUG] KAKAO REFRESH TOKEN RESPONSE:", JSON.stringify(responseDataWithoutTokens, null, 2));
+      
+      if (response.data.access_token) {
+        console.log("[DEBUG] KAKAO NEW ACCESS TOKEN: RECEIVED");
+      } else {
+        console.log("[DEBUG] KAKAO NEW ACCESS TOKEN: NOT RECEIVED");
+      }
+      
+      if (response.data.refresh_token) {
+        console.log("[DEBUG] KAKAO NEW REFRESH TOKEN: RECEIVED");
+      } else {
+        console.log("[DEBUG] KAKAO NEW REFRESH TOKEN: NOT RECEIVED (may be same as before)");
+      }
 
       // 응답 검증
       if (!response.data || !response.data.access_token) {
@@ -329,6 +468,28 @@ class OAuthService {
           refresh_token: refreshToken
         }
       });
+
+      // Debug: 네이버 리프레시 토큰 응답 전체 로그 (토큰 값 제외)
+      const responseDataWithoutTokens = { ...response.data };
+      if (responseDataWithoutTokens.access_token) {
+        responseDataWithoutTokens.access_token = "***REDACTED***";
+      }
+      if (responseDataWithoutTokens.refresh_token) {
+        responseDataWithoutTokens.refresh_token = "***REDACTED***";
+      }
+      console.log("[DEBUG] NAVER REFRESH TOKEN RESPONSE:", JSON.stringify(responseDataWithoutTokens, null, 2));
+      
+      if (response.data.access_token) {
+        console.log("[DEBUG] NAVER NEW ACCESS TOKEN: RECEIVED");
+      } else {
+        console.log("[DEBUG] NAVER NEW ACCESS TOKEN: NOT RECEIVED");
+      }
+      
+      if (response.data.refresh_token) {
+        console.log("[DEBUG] NAVER NEW REFRESH TOKEN: RECEIVED");
+      } else {
+        console.log("[DEBUG] NAVER NEW REFRESH TOKEN: NOT RECEIVED (may be same as before)");
+      }
 
       // 응답 검증
       if (!response.data) {

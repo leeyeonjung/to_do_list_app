@@ -58,6 +58,15 @@ router.post('/kakao', async (req, res) => {
     }
 
     const result = await oauthService.handleKakaoLogin(accessToken);
+    
+    // Debug: 카카오 로그인 후 생성된 JWT 토큰 로그
+    if (result.token) {
+      console.log("[DEBUG] KAKAO LOGIN - JWT TOKEN GENERATED");
+    }
+    if (result.refreshToken) {
+      console.log("[DEBUG] KAKAO LOGIN - REFRESH TOKEN GENERATED");
+    }
+    
     res.json(result);
   } catch (error) {
     console.error('카카오 로그인 오류:', error);
@@ -264,6 +273,15 @@ router.post('/naver', async (req, res) => {
     }
 
     const result = await oauthService.handleNaverLogin(accessToken);
+    
+    // Debug: 네이버 로그인 후 생성된 JWT 토큰 로그
+    if (result.token) {
+      console.log("[DEBUG] NAVER LOGIN - JWT TOKEN GENERATED");
+    }
+    if (result.refreshToken) {
+      console.log("[DEBUG] NAVER LOGIN - REFRESH TOKEN GENERATED");
+    }
+    
     res.json(result);
   } catch (error) {
     console.error('네이버 로그인 오류:', error);
@@ -440,6 +458,10 @@ router.get('/me', async (req, res) => {
     }
 
     const token = authHeader.substring(7);
+    
+    // Debug: /me 엔드포인트에서 JWT 토큰 요청 로그
+    console.log("[DEBUG] /api/auth/me - JWT TOKEN REQUEST");
+    
     const decoded = userService.verifyToken(token);
 
     let user;
@@ -554,6 +576,9 @@ router.post('/test-token', (req, res) => {
 
     const token = userService.generateToken(payload);
 
+    // Debug: 테스트 토큰 생성 로그 (이미 generateToken에서 로그 출력됨)
+    console.log("[DEBUG] TEST TOKEN ENDPOINT - Token generated for payload:", JSON.stringify(payload, null, 2));
+
     res.json({
       token,
       payload
@@ -572,7 +597,7 @@ router.post('/test-token', (req, res) => {
  * @swagger
  * /api/auth/refresh:
  *   post:
- *     summary: Refresh Token으로 새 Access Token 발급
+ *     summary: JWT 토큰 검증 및 필요시 갱신
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -583,13 +608,15 @@ router.post('/test-token', (req, res) => {
  *             required:
  *               - refreshToken
  *             properties:
+ *               token:
+ *                 type: string
+ *                 description: JWT Access Token (선택, 있으면 먼저 검증)
  *               refreshToken:
  *                 type: string
- *                 description: Refresh Token
- *                 example: "refresh_token_string"
+ *                 description: JWT Refresh Token (필수)
  *     responses:
  *       200:
- *         description: 토큰 갱신 성공
+ *         description: 토큰이 유효하거나 갱신됨
  *         content:
  *           application/json:
  *             schema:
@@ -601,7 +628,7 @@ router.post('/test-token', (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       401:
- *         description: Refresh Token이 유효하지 않음
+ *         description: 토큰이 유효하지 않음
  *         content:
  *           application/json:
  *             schema:
@@ -609,17 +636,55 @@ router.post('/test-token', (req, res) => {
  */
 router.post('/refresh', async (req, res) => {
   try {
-    const { refreshToken } = req.body;
+    const { token, refreshToken } = req.body;
 
     if (!refreshToken) {
       return res.status(400).json({ error: 'refreshToken이 필요합니다.' });
     }
 
+    console.log("[DEBUG] /api/auth/refresh - VERIFY-AND-REFRESH REQUEST");
+    
+    // token이 있으면 먼저 검증 시도
+    if (token) {
+      try {
+        const decoded = userService.verifyToken(token);
+        console.log("[DEBUG] JWT TOKEN VALID - No refresh needed");
+        
+        // 토큰이 유효하면 사용자 정보와 함께 반환
+        const user = await userService.getUserById(decoded.id);
+        return res.json({
+          token: token,
+          refreshed: false,
+          user: {
+            id: user.id,
+            email: user.email,
+            nickname: user.nickname,
+            profileImage: user.profileImage,
+            provider: user.provider
+          }
+        });
+      } catch (error) {
+        // 토큰이 유효하지 않으면 갱신 진행
+        console.log("[DEBUG] JWT TOKEN INVALID, attempting refresh");
+      }
+    }
+
+    // 토큰이 없거나 유효하지 않으면 refresh token으로 갱신
+    console.log("[DEBUG] REFRESH TOKEN REQUEST");
     const result = await userService.refreshAccessToken(refreshToken);
-    res.json(result);
+    
+    // Debug: 새로 생성된 JWT 토큰 로그
+    if (result.token) {
+      console.log("[DEBUG] NEW JWT TOKEN GENERATED");
+    }
+    
+    res.json({
+      ...result,
+      refreshed: true
+    });
   } catch (error) {
-    console.error('토큰 갱신 오류:', error);
-    res.status(401).json({ error: error.message || '토큰 갱신에 실패했습니다.' });
+    console.error('토큰 검증/갱신 오류:', error);
+    res.status(401).json({ error: error.message || '토큰 검증 및 갱신에 실패했습니다.' });
   }
 });
 
@@ -627,7 +692,7 @@ router.post('/refresh', async (req, res) => {
  * @swagger
  * /api/auth/kakao/refresh:
  *   post:
- *     summary: 카카오 OAuth 리프레시 토큰으로 새 Access Token 발급
+ *     summary: 카카오 OAuth 토큰 검증 및 필요시 갱신
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -638,13 +703,15 @@ router.post('/refresh', async (req, res) => {
  *             required:
  *               - refreshToken
  *             properties:
+ *               accessToken:
+ *                 type: string
+ *                 description: 카카오 OAuth Access Token (선택, 있으면 먼저 검증)
  *               refreshToken:
  *                 type: string
- *                 description: 카카오 OAuth 리프레시 토큰
- *                 example: "kakao_refresh_token_string"
+ *                 description: 카카오 OAuth 리프레시 토큰 (필수)
  *     responses:
  *       200:
- *         description: 토큰 갱신 성공
+ *         description: 토큰이 유효하거나 갱신됨
  *         content:
  *           application/json:
  *             schema:
@@ -656,7 +723,7 @@ router.post('/refresh', async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       401:
- *         description: Refresh Token이 유효하지 않음
+ *         description: 토큰이 유효하지 않음
  *         content:
  *           application/json:
  *             schema:
@@ -664,22 +731,51 @@ router.post('/refresh', async (req, res) => {
  */
 router.post('/kakao/refresh', async (req, res) => {
   try {
-    const { refreshToken } = req.body;
+    const { accessToken, refreshToken } = req.body;
 
     if (!refreshToken) {
       return res.status(400).json({ error: '카카오 refreshToken이 필요합니다.' });
     }
 
-    // 카카오 OAuth 리프레시 토큰으로 새 액세스 토큰 받기
-    const newKakaoAccessToken = await oauthService.refreshKakaoToken(refreshToken);
+    console.log("[DEBUG] /api/auth/kakao/refresh - VERIFY-AND-REFRESH REQUEST");
     
-    // 새 액세스 토큰으로 사용자 정보 조회 및 로그인 처리
+    // accessToken이 있으면 먼저 검증 시도
+    if (accessToken) {
+      const verificationResult = await oauthService.verifyKakaoToken(accessToken);
+      
+      if (verificationResult.valid) {
+        console.log("[DEBUG] KAKAO TOKEN VALID - No refresh needed");
+        
+        // 토큰이 유효하면 기존 accessToken으로 사용자 정보 조회 및 로그인 처리
+        const result = await oauthService.handleKakaoLogin(accessToken);
+        return res.json({
+          ...result,
+          refreshed: false
+        });
+      } else {
+        console.log("[DEBUG] KAKAO TOKEN INVALID, attempting refresh");
+      }
+    }
+
+    // accessToken이 없거나 유효하지 않으면 refresh token으로 갱신
+    const newKakaoAccessToken = await oauthService.refreshKakaoToken(refreshToken);
     const result = await oauthService.handleKakaoLogin(newKakaoAccessToken);
     
-    res.json(result);
+    // Debug: 카카오 토큰 갱신 후 생성된 JWT 토큰 로그
+    if (result.token) {
+      console.log("[DEBUG] KAKAO TOKEN REFRESH - JWT TOKEN GENERATED");
+    }
+    if (result.refreshToken) {
+      console.log("[DEBUG] KAKAO TOKEN REFRESH - REFRESH TOKEN GENERATED");
+    }
+    
+    res.json({
+      ...result,
+      refreshed: true
+    });
   } catch (error) {
-    console.error('카카오 토큰 갱신 오류:', error);
-    res.status(401).json({ error: error.message || '카카오 토큰 갱신에 실패했습니다.' });
+    console.error('카카오 토큰 검증/갱신 오류:', error);
+    res.status(401).json({ error: error.message || '카카오 토큰 검증 및 갱신에 실패했습니다.' });
   }
 });
 
@@ -687,7 +783,7 @@ router.post('/kakao/refresh', async (req, res) => {
  * @swagger
  * /api/auth/naver/refresh:
  *   post:
- *     summary: 네이버 OAuth 리프레시 토큰으로 새 Access Token 발급
+ *     summary: 네이버 OAuth 토큰 검증 및 필요시 갱신
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -698,13 +794,15 @@ router.post('/kakao/refresh', async (req, res) => {
  *             required:
  *               - refreshToken
  *             properties:
+ *               accessToken:
+ *                 type: string
+ *                 description: 네이버 OAuth Access Token (선택, 있으면 먼저 검증)
  *               refreshToken:
  *                 type: string
- *                 description: 네이버 OAuth 리프레시 토큰
- *                 example: "naver_refresh_token_string"
+ *                 description: 네이버 OAuth 리프레시 토큰 (필수)
  *     responses:
  *       200:
- *         description: 토큰 갱신 성공
+ *         description: 토큰이 유효하거나 갱신됨
  *         content:
  *           application/json:
  *             schema:
@@ -716,7 +814,7 @@ router.post('/kakao/refresh', async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       401:
- *         description: Refresh Token이 유효하지 않음
+ *         description: 토큰이 유효하지 않음
  *         content:
  *           application/json:
  *             schema:
@@ -724,22 +822,217 @@ router.post('/kakao/refresh', async (req, res) => {
  */
 router.post('/naver/refresh', async (req, res) => {
   try {
-    const { refreshToken } = req.body;
+    const { accessToken, refreshToken } = req.body;
 
     if (!refreshToken) {
       return res.status(400).json({ error: '네이버 refreshToken이 필요합니다.' });
     }
 
-    // 네이버 OAuth 리프레시 토큰으로 새 액세스 토큰 받기
-    const newNaverAccessToken = await oauthService.refreshNaverToken(refreshToken);
+    console.log("[DEBUG] /api/auth/naver/refresh - VERIFY-AND-REFRESH REQUEST");
     
-    // 새 액세스 토큰으로 사용자 정보 조회 및 로그인 처리
+    // accessToken이 있으면 먼저 검증 시도
+    if (accessToken) {
+      const verificationResult = await oauthService.verifyNaverToken(accessToken);
+      
+      if (verificationResult.valid) {
+        console.log("[DEBUG] NAVER TOKEN VALID - No refresh needed");
+        
+        // 토큰이 유효하면 기존 accessToken으로 사용자 정보 조회 및 로그인 처리
+        const result = await oauthService.handleNaverLogin(accessToken);
+        return res.json({
+          ...result,
+          refreshed: false
+        });
+      } else {
+        console.log("[DEBUG] NAVER TOKEN INVALID, attempting refresh");
+      }
+    }
+
+    // accessToken이 없거나 유효하지 않으면 refresh token으로 갱신
+    const newNaverAccessToken = await oauthService.refreshNaverToken(refreshToken);
     const result = await oauthService.handleNaverLogin(newNaverAccessToken);
     
-    res.json(result);
+    // Debug: 네이버 토큰 갱신 후 생성된 JWT 토큰 로그
+    if (result.token) {
+      console.log("[DEBUG] NAVER TOKEN REFRESH - JWT TOKEN GENERATED");
+    }
+    if (result.refreshToken) {
+      console.log("[DEBUG] NAVER TOKEN REFRESH - REFRESH TOKEN GENERATED");
+    }
+    
+    res.json({
+      ...result,
+      refreshed: true
+    });
   } catch (error) {
-    console.error('네이버 토큰 갱신 오류:', error);
-    res.status(401).json({ error: error.message || '네이버 토큰 갱신에 실패했습니다.' });
+    console.error('네이버 토큰 검증/갱신 오류:', error);
+    res.status(401).json({ error: error.message || '네이버 토큰 검증 및 갱신에 실패했습니다.' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/auth/verify/jwt:
+ *   get:
+ *     summary: JWT 토큰 유효성 검증
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: 토큰이 유효함
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 valid:
+ *                   type: boolean
+ *                   example: true
+ *                 payload:
+ *                   type: object
+ *       401:
+ *         description: 토큰이 유효하지 않음
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get('/verify/jwt', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ valid: false, error: '인증 토큰이 필요합니다.' });
+    }
+
+    const token = authHeader.substring(7);
+    console.log("[DEBUG] JWT TOKEN VERIFICATION REQUEST");
+    
+    const decoded = userService.verifyToken(token);
+    
+    console.log("[DEBUG] JWT TOKEN VALID - Payload:", JSON.stringify(decoded, null, 2));
+    
+    res.json({
+      valid: true,
+      payload: decoded
+    });
+  } catch (error) {
+    console.log("[DEBUG] JWT TOKEN INVALID:", error.message);
+    res.status(401).json({ valid: false, error: error.message || '유효하지 않은 토큰입니다.' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/auth/verify/kakao:
+ *   post:
+ *     summary: 카카오 OAuth Access Token 유효성 검증
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - accessToken
+ *             properties:
+ *               accessToken:
+ *                 type: string
+ *                 description: 카카오 OAuth Access Token
+ *     responses:
+ *       200:
+ *         description: 토큰 검증 결과
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 valid:
+ *                   type: boolean
+ *                 expiresIn:
+ *                   type: number
+ *                 appId:
+ *                   type: number
+ *       401:
+ *         description: 토큰이 유효하지 않음
+ */
+router.post('/verify/kakao', async (req, res) => {
+  try {
+    const { accessToken } = req.body;
+
+    if (!accessToken) {
+      return res.status(400).json({ error: '카카오 accessToken이 필요합니다.' });
+    }
+
+    console.log("[DEBUG] KAKAO TOKEN VERIFICATION REQUEST");
+    
+    const result = await oauthService.verifyKakaoToken(accessToken);
+    
+    if (result.valid) {
+      res.json(result);
+    } else {
+      res.status(401).json(result);
+    }
+  } catch (error) {
+    console.error('카카오 토큰 검증 오류:', error);
+    res.status(401).json({ valid: false, error: error.message || '카카오 토큰 검증에 실패했습니다.' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/auth/verify/naver:
+ *   post:
+ *     summary: 네이버 OAuth Access Token 유효성 검증
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - accessToken
+ *             properties:
+ *               accessToken:
+ *                 type: string
+ *                 description: 네이버 OAuth Access Token
+ *     responses:
+ *       200:
+ *         description: 토큰 검증 결과
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 valid:
+ *                   type: boolean
+ *                 id:
+ *                   type: string
+ *       401:
+ *         description: 토큰이 유효하지 않음
+ */
+router.post('/verify/naver', async (req, res) => {
+  try {
+    const { accessToken } = req.body;
+
+    if (!accessToken) {
+      return res.status(400).json({ error: '네이버 accessToken이 필요합니다.' });
+    }
+
+    console.log("[DEBUG] NAVER TOKEN VERIFICATION REQUEST");
+    
+    const result = await oauthService.verifyNaverToken(accessToken);
+    
+    if (result.valid) {
+      res.json(result);
+    } else {
+      res.status(401).json(result);
+    }
+  } catch (error) {
+    console.error('네이버 토큰 검증 오류:', error);
+    res.status(401).json({ valid: false, error: error.message || '네이버 토큰 검증에 실패했습니다.' });
   }
 });
 
