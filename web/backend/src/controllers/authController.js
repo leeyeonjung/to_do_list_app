@@ -501,9 +501,7 @@ router.get('/me', async (req, res) => {
  * /api/auth/test-token:
  *   post:
  *     summary: 테스트용 JWT 토큰 발급
- *     description: |
- *       다른 서비스에서 공통으로 사용할 **테스트용 JWT 토큰**을 발급합니다.
- *       이 엔드포인트는 개발/테스트 환경에서만 사용하세요.
+ *     description: 다른 서비스에서 공통으로 사용할 테스트용 JWT 토큰을 발급합니다. 이 엔드포인트는 개발/테스트 환경에서만 사용하세요.
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -643,9 +641,11 @@ router.post('/test-token', async (req, res) => {
  *               token:
  *                 type: string
  *                 description: JWT Access Token (선택, 있으면 먼저 검증)
+ *                 example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
  *               refreshToken:
  *                 type: string
  *                 description: JWT Refresh Token (필수)
+ *                 example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
  *     responses:
  *       200:
  *         description: 토큰이 유효하거나 갱신됨
