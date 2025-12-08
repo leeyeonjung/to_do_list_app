@@ -13,9 +13,7 @@ pipeline {
            0. Checkout
         ------------------------------------------------------------- */
         stage('Checkout') {
-            steps {
-                checkout scm
-            }
+            steps { checkout scm }
         }
 
         /* -------------------------------------------------------------
@@ -67,7 +65,19 @@ pipeline {
         }
 
         /* -------------------------------------------------------------
-           4. Run Tests
+           3.5 Refresh Tokens BEFORE Tests
+        ------------------------------------------------------------- */
+        stage('Refresh Tokens Before Test') {
+            steps {
+                script {
+                    echo "🔄 Running Token Refresh Job (todolist_refresh_tokens)..."
+                    build job: 'todolist_refresh_tokens', wait: true
+                }
+            }
+        }
+
+        /* -------------------------------------------------------------
+           4. Run Test Job
         ------------------------------------------------------------- */
         stage('Run Test Job') {
             steps {
@@ -121,7 +131,7 @@ pipeline {
         }
 
         /* -------------------------------------------------------------
-           8. Load Prod Images Automatically
+           8. Load Prod Images
         ------------------------------------------------------------- */
         stage('Load Prod Images') {
             steps {
