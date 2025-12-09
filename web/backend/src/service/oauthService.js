@@ -419,7 +419,10 @@ class OAuthService {
       }
 
       console.log("✅ 카카오 토큰 갱신 성공");
-      return response.data.access_token;
+      return {
+        accessToken: response.data.access_token,
+        refreshToken: response.data.refresh_token || refreshToken // 새 refresh_token이 없으면 기존 것 사용
+      };
 
     } catch (error) {
       console.error("❌ 카카오 리프레시 토큰 갱신 실패:");
@@ -510,7 +513,10 @@ class OAuthService {
       }
 
       console.log("✅ 네이버 토큰 갱신 성공");
-      return response.data.access_token;
+      return {
+        accessToken: response.data.access_token,
+        refreshToken: response.data.refresh_token || refreshToken // 새 refresh_token이 없으면 기존 것 사용
+      };
 
     } catch (error) {
       console.error("❌ 네이버 리프레시 토큰 갱신 실패:");

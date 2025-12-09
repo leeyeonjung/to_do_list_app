@@ -109,6 +109,10 @@ const options = {
             user: {
               $ref: '#/components/schemas/User',
             },
+            refreshed: {
+              type: 'boolean',
+              description: '토큰이 갱신되었는지 여부 (refresh 엔드포인트에서만 반환)',
+            },
           },
         },
       },

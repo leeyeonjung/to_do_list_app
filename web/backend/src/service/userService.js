@@ -117,6 +117,7 @@ class UserService {
     
     return {
       token: newAccessToken,
+      refreshToken: refreshToken, // 기존 refreshToken 유지
       user: {
         id: user.id,
         email: user.email,
