@@ -301,17 +301,10 @@ class OAuthService {
    * 카카오 로그인 처리
    */
   async handleKakaoLogin(accessToken) {
-    // Debug: 카카오 OAuth access token 로그
-    console.log("[DEBUG] KAKAO LOGIN - OAuth Access Token received");
-    
     const oauthData = await this.getKakaoUserInfo(accessToken);
     const user = await userService.findOrCreateUser(oauthData);
     const token = userService.generateToken(user);
     const refreshToken = await userService.generateRefreshToken(user);
-
-    // Debug: 생성된 JWT 및 Refresh Token 로그
-    console.log("[DEBUG] KAKAO LOGIN - JWT TOKEN GENERATED");
-    console.log("[DEBUG] KAKAO LOGIN - REFRESH TOKEN GENERATED");
 
     return {
       token,
@@ -330,17 +323,10 @@ class OAuthService {
    * 네이버 로그인 처리
    */
   async handleNaverLogin(accessToken) {
-    // Debug: 네이버 OAuth access token 로그
-    console.log("[DEBUG] NAVER LOGIN - OAuth Access Token received");
-    
     const oauthData = await this.getNaverUserInfo(accessToken);
     const user = await userService.findOrCreateUser(oauthData);
     const token = userService.generateToken(user);
     const refreshToken = await userService.generateRefreshToken(user);
-
-    // Debug: 생성된 JWT 및 Refresh Token 로그
-    console.log("[DEBUG] NAVER LOGIN - JWT TOKEN GENERATED");
-    console.log("[DEBUG] NAVER LOGIN - REFRESH TOKEN GENERATED");
 
     return {
       token,

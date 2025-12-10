@@ -4,11 +4,6 @@ const userService = require('../service/userService');
 
 const router = express.Router();
 
-// auth 라우터의 모든 요청 로깅
-router.use((req, res, next) => {
-  console.log(`[AUTH ROUTER] ${req.method} ${req.path}`);
-  next();
-});
 
 /**
  * @swagger
@@ -58,15 +53,6 @@ router.post('/kakao', async (req, res) => {
     }
 
     const result = await oauthService.handleKakaoLogin(accessToken);
-    
-    // Debug: 카카오 로그인 후 생성된 JWT 토큰 로그
-    if (result.token) {
-      console.log("[DEBUG] KAKAO LOGIN - JWT TOKEN GENERATED");
-    }
-    if (result.refreshToken) {
-      console.log("[DEBUG] KAKAO LOGIN - REFRESH TOKEN GENERATED");
-    }
-    
     res.json(result);
   } catch (error) {
     console.error('카카오 로그인 오류:', error);
@@ -273,15 +259,6 @@ router.post('/naver', async (req, res) => {
     }
 
     const result = await oauthService.handleNaverLogin(accessToken);
-    
-    // Debug: 네이버 로그인 후 생성된 JWT 토큰 로그
-    if (result.token) {
-      console.log("[DEBUG] NAVER LOGIN - JWT TOKEN GENERATED");
-    }
-    if (result.refreshToken) {
-      console.log("[DEBUG] NAVER LOGIN - REFRESH TOKEN GENERATED");
-    }
-    
     res.json(result);
   } catch (error) {
     console.error('네이버 로그인 오류:', error);
@@ -458,10 +435,6 @@ router.get('/me', async (req, res) => {
     }
 
     const token = authHeader.substring(7);
-    
-    // Debug: /me 엔드포인트에서 JWT 토큰 요청 로그
-    console.log("[DEBUG] /api/auth/me - JWT TOKEN REQUEST");
-    
     const decoded = userService.verifyToken(token);
 
     let user;
@@ -595,7 +568,6 @@ router.post('/test-token', async (req, res) => {
       user = await userService.getUserById(id);
     } catch (error) {
       // 사용자가 없는 경우 자동 생성
-      console.log("[DEBUG] TEST TOKEN - User not found, creating new user");
       try {
         const userRepository = require('../repository/userRepository');
         user = await userRepository.create({
@@ -605,22 +577,12 @@ router.post('/test-token', async (req, res) => {
           nickname: `테스트 사용자 ${id}`,
           profileImage: null
         });
-        console.log("[DEBUG] TEST TOKEN - User created with DB id:", user.id);
-        // JWT payload의 id를 DB에서 생성된 실제 id로 업데이트
-        // 하지만 원래 요청한 id를 유지하기 위해 payload는 그대로 둠
       } catch (createError) {
         // 사용자 생성 실패 (예: 중복 키 에러 - 이미 존재하는 경우)
         if (createError.message.includes('이미 등록된 사용자') || createError.code === '23505') {
           // 중복 키 에러인 경우, oauthId와 provider로 다시 조회
           const userRepository = require('../repository/userRepository');
           user = await userRepository.findByOAuthId(id.toString(), provider || 'test');
-          if (user) {
-            console.log("[DEBUG] TEST TOKEN - User found by oauthId:", user.id);
-          } else {
-            console.log("[DEBUG] TEST TOKEN - Failed to create/find user:", createError.message);
-          }
-        } else {
-          console.log("[DEBUG] TEST TOKEN - Failed to create user:", createError.message);
         }
       }
     }
@@ -629,14 +591,10 @@ router.post('/test-token', async (req, res) => {
     if (user) {
       try {
         refreshToken = await userService.generateRefreshToken(user);
-        console.log("[DEBUG] TEST TOKEN - Refresh token generated");
       } catch (error) {
-        console.log("[DEBUG] TEST TOKEN - Failed to generate refresh token:", error.message);
+        console.error('Refresh token 생성 실패:', error.message);
       }
     }
-
-    // Debug: 테스트 토큰 생성 로그 (이미 generateToken에서 로그 출력됨)
-    console.log("[DEBUG] TEST TOKEN ENDPOINT - Token generated for payload:", JSON.stringify(payload, null, 2));
 
     const response = {
       token,
@@ -718,14 +676,11 @@ router.post('/refresh', async (req, res) => {
     if (!refreshToken) {
       return res.status(400).json({ error: 'refreshToken이 필요합니다.' });
     }
-
-    console.log("[DEBUG] /api/auth/refresh - VERIFY-AND-REFRESH REQUEST");
     
     // token이 있으면 먼저 검증 시도
     if (token) {
       try {
         const decoded = userService.verifyToken(token);
-        console.log("[DEBUG] JWT TOKEN VALID - No refresh needed");
         
         // 토큰이 유효하면 사용자 정보와 함께 반환
         const user = await userService.getUserById(decoded.id);
@@ -743,18 +698,11 @@ router.post('/refresh', async (req, res) => {
         });
       } catch (error) {
         // 토큰이 유효하지 않으면 갱신 진행
-        console.log("[DEBUG] JWT TOKEN INVALID, attempting refresh");
       }
     }
 
     // 토큰이 없거나 유효하지 않으면 refresh token으로 갱신
-    console.log("[DEBUG] REFRESH TOKEN REQUEST");
     const result = await userService.refreshAccessToken(refreshToken);
-    
-    // Debug: 새로 생성된 JWT 토큰 로그
-    if (result.token) {
-      console.log("[DEBUG] NEW JWT TOKEN GENERATED");
-    }
     
     res.json({
       ...result,
@@ -814,38 +762,24 @@ router.post('/kakao/refresh', async (req, res) => {
     if (!refreshToken) {
       return res.status(400).json({ error: '카카오 refreshToken이 필요합니다.' });
     }
-
-    console.log("[DEBUG] /api/auth/kakao/refresh - VERIFY-AND-REFRESH REQUEST");
     
     // accessToken이 있으면 먼저 검증 시도
     if (accessToken) {
       const verificationResult = await oauthService.verifyKakaoToken(accessToken);
       
       if (verificationResult.valid) {
-        console.log("[DEBUG] KAKAO TOKEN VALID - No refresh needed");
-        
         // 토큰이 유효하면 기존 accessToken으로 사용자 정보 조회 및 로그인 처리
         const result = await oauthService.handleKakaoLogin(accessToken);
         return res.json({
           ...result,
           refreshed: false
         });
-      } else {
-        console.log("[DEBUG] KAKAO TOKEN INVALID, attempting refresh");
       }
     }
 
     // accessToken이 없거나 유효하지 않으면 refresh token으로 갱신
     const kakaoTokens = await oauthService.refreshKakaoToken(refreshToken);
     const result = await oauthService.handleKakaoLogin(kakaoTokens.accessToken);
-    
-    // Debug: 카카오 토큰 갱신 후 생성된 JWT 토큰 로그
-    if (result.token) {
-      console.log("[DEBUG] KAKAO TOKEN REFRESH - JWT TOKEN GENERATED");
-    }
-    if (result.refreshToken) {
-      console.log("[DEBUG] KAKAO TOKEN REFRESH - REFRESH TOKEN GENERATED");
-    }
     
     res.json({
       ...result,
@@ -905,38 +839,24 @@ router.post('/naver/refresh', async (req, res) => {
     if (!refreshToken) {
       return res.status(400).json({ error: '네이버 refreshToken이 필요합니다.' });
     }
-
-    console.log("[DEBUG] /api/auth/naver/refresh - VERIFY-AND-REFRESH REQUEST");
     
     // accessToken이 있으면 먼저 검증 시도
     if (accessToken) {
       const verificationResult = await oauthService.verifyNaverToken(accessToken);
       
       if (verificationResult.valid) {
-        console.log("[DEBUG] NAVER TOKEN VALID - No refresh needed");
-        
         // 토큰이 유효하면 기존 accessToken으로 사용자 정보 조회 및 로그인 처리
         const result = await oauthService.handleNaverLogin(accessToken);
         return res.json({
           ...result,
           refreshed: false
         });
-      } else {
-        console.log("[DEBUG] NAVER TOKEN INVALID, attempting refresh");
       }
     }
 
     // accessToken이 없거나 유효하지 않으면 refresh token으로 갱신
     const naverTokens = await oauthService.refreshNaverToken(refreshToken);
     const result = await oauthService.handleNaverLogin(naverTokens.accessToken);
-    
-    // Debug: 네이버 토큰 갱신 후 생성된 JWT 토큰 로그
-    if (result.token) {
-      console.log("[DEBUG] NAVER TOKEN REFRESH - JWT TOKEN GENERATED");
-    }
-    if (result.refreshToken) {
-      console.log("[DEBUG] NAVER TOKEN REFRESH - REFRESH TOKEN GENERATED");
-    }
     
     res.json({
       ...result,

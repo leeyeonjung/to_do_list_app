@@ -31,7 +31,6 @@ const Login = ({ onLogin, apiBaseUrl }) => {
           redirectUri = `${backendUrl}:${backendPort}/api/auth/kakao/callback`;
         }
       }
-      console.log('프론트엔드 - 카카오 redirect_uri:', redirectUri);
 
       const kakaoAuthUrl =
         `https://kauth.kakao.com/oauth/authorize` +
@@ -76,7 +75,6 @@ const Login = ({ onLogin, apiBaseUrl }) => {
           redirectUri = `${backendUrl}:${backendPort}/api/auth/naver/callback`;
         }
       }
-      console.log('프론트엔드 - 네이버 redirect_uri:', redirectUri);
 
       const naverAuthUrl =
         `https://nid.naver.com/oauth2.0/authorize` +

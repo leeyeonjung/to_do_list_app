@@ -31,14 +31,6 @@ if (!PORT || !HOST) {
 app.use(cors());
 app.use(express.json());
 
-// 모든 요청 로깅 (디버깅용)
-app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
-  console.log('Query:', req.query);
-  console.log('Body:', req.body);
-  next();
-});
-
 // Swagger UI
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
   customCss: '.swagger-ui .topbar { display: none }',
@@ -96,8 +88,6 @@ const startServer = async () => {
     app.listen(PORT, HOST, () => {
       console.log(`Server is running on ${HOST}:${PORT}`);
       console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-      console.log(`KAKAO_REDIRECT_URI: ${process.env.REACT_APP_KAKAO_REDIRECT_URI || 'NOT SET'}`);
-      console.log(`KAKAO_REST_API_KEY: ${process.env.REACT_APP_KAKAO_REST_API_KEY ? 'SET' : 'NOT SET'}`);
     });
   } catch (error) {
     console.error('❌ Server startup error:', error.message);

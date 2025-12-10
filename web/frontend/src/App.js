@@ -158,7 +158,6 @@ function App() {
 
   // 로그인 처리 (useCallback으로 메모이제이션하여 dependency 문제 해결)
   const handleLogin = useCallback((userData, tokenData, refreshTokenData = null) => {
-    console.log('handleLogin called with:', { userData, tokenData, refreshTokenData });
     setUser(userData);
     setToken(tokenData);
     setCheckingAuth(false);

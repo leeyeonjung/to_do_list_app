@@ -67,12 +67,6 @@ class UserService {
     const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
 
     const token = jwt.sign(payload, secret, { expiresIn });
-    
-    // Debug: JWT 토큰 생성 로그
-    console.log("[DEBUG] JWT TOKEN GENERATED");
-    console.log("[DEBUG] JWT PAYLOAD:", JSON.stringify(payload, null, 2));
-    console.log("[DEBUG] JWT EXPIRES IN:", expiresIn);
-
     return token;
   }
 
@@ -137,18 +131,10 @@ class UserService {
     }
 
     try {
-      // Debug: JWT 토큰 검증 로그
-      console.log("[DEBUG] JWT TOKEN VERIFICATION REQUEST");
-      
       const secret = process.env.JWT_SECRET;
       const decoded = jwt.verify(token, secret);
-      
-      // Debug: 디코딩된 JWT 페이로드 로그
-      console.log("[DEBUG] JWT DECODED PAYLOAD:", JSON.stringify(decoded, null, 2));
-      
       return decoded;
     } catch (error) {
-      console.log("[DEBUG] JWT TOKEN VERIFICATION FAILED:", error.message);
       throw new Error('Invalid token');
     }
   }
