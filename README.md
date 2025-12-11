@@ -1,6 +1,6 @@
 # Todo List 애플리케이션
 
-Kakao, Naver OAuth 인증을 지원하는 React, Node.js, Express, PostgreSQL 기반의 풀스택 할 일 목록 애플리케이션입니다.
+Kakao·Naver OAuth 인증을 지원하는 Todo List 풀스택 애플리케이션으로, React–Node.js–Express–PostgreSQL 기반이며 Docker를 통해 손쉽게 배포할 수 있습니다. 이 프로젝트는 바이브 코딩 방식으로 완성한 프로젝트입니다.
 
 ## 🚀 주요 기능
 
@@ -35,88 +35,97 @@ Kakao, Naver OAuth 인증을 지원하는 React, Node.js, Express, PostgreSQL �
 
 ```
 todolist_app/
-├── config/
-│   └── .env.template                 # 공통 환경 변수 템플릿
-├── web/
-│   ├── backend/
-│   │   ├── src/
-│   │   │   ├── controllers/          # API 컨트롤러
-│   │   │   ├── service/               # 비즈니스 로직
-│   │   │   ├── repository/           # 데이터 접근 계층
-│   │   │   ├── middleware/           # 인증 미들웨어
-│   │   │   ├── db/                   # 데이터베이스 초기화
-│   │   │   └── index.js              # 진입점
-│   │   └── Dockerfile
-│   └── frontend/
-│       ├── src/
-│       │   ├── components/           # React 컴포넌트
-│       │   └── App.js
-│       └── Dockerfile
-├── deploy/
-│   ├── deploy.sh                     # Linux 배포 스크립트
-│   └── deploy.bat                    # Windows 배포 스크립트
+├── README.md
+│
 ├── ci/
-│   └── Jenkinsfile                   # CI/CD 파이프라인
-└── docker-compose.yml
+│   └── Jenkinsfile.app               # Dev → Test → Prod 전체 배포를 수행하는 Jenkins 파이프라인
+│
+├── config/                           # 환경/설정 파일 관리
+│
+├── deploy/
+│   └── images/                       # 빌드된 Docker 이미지 아카이브 저장소
+│
+├── scripts/
+│   ├── deploy.sh                     # Linux 배포 스크립트
+│   ├── deploy.bat                    # Windows 배포 스크립트
+│   ├── docker_build.sh               # Docker 이미지 빌드(Linux)
+│   └── docker_build.bat              # Docker 이미지 빌드(Windows)
+│
+├── docker-compose.yml                # 로컬/서버 공통 Docker Compose 실행 설정
+│
+└── web/
+    ├── backend/
+    │   ├── Dockerfile                # 백엔드 Docker 빌드 설정
+    │   ├── ecosystem.config.js       # PM2 프로덕션 실행 설정
+    │   ├── package.json
+    │   └── src/
+    │       ├── config/
+    │       │   └── swagger.js        # Swagger 문서 설정
+    │       ├── controllers/          
+    │       │   ├── authController.js # OAuth 로그인 처리
+    │       │   └── todoController.js # Todo CRUD API
+    │       ├── service/
+    │       │   ├── oauthService.js   # Kakao/Naver OAuth 로직
+    │       │   └── userService.js    # 사용자 도메인 로직
+    │       ├── repository/
+    │       │   └── userRepository.js # DB 쿼리 처리
+    │       ├── db/
+    │       │   └── init.sql          # PostgreSQL 초기 스키마
+    │       ├── db.js                 # PostgreSQL 연결 설정
+    │       └── index.js              # Express 서버 엔트리포인트
+    │
+    └── frontend/
+        ├── Dockerfile                # 프론트엔드 Docker 빌드 설정
+        ├── nginx.conf                # 정적 배포 Nginx 설정
+        ├── package.json
+        ├── public/
+        │   └── index.html            # 기본 HTML 엔트리 파일
+        └── src/
+            ├── components/
+            │   ├── AuthCallback.js   # OAuth Redirect 처리
+            │   ├── Login.js          # 로그인 UI
+            │   ├── TodoForm.js       # Todo 입력 폼
+            │   ├── TodoItem.js       # Todo 단일 항목
+            │   ├── TodoList.js       # Todo 리스트
+            │   └── UserProfile.js    # 사용자 프로필 화면
+            ├── App.js                # 라우팅/전체 App 구조
+            └── index.js              # React 엔트리포인트
 ```
 
 ## 🔧 환경 변수 설정
 
-이 프로젝트는 **단일 .env 구조**를 사용합니다:
+이 프로젝트는 **Frontend / Backend 통합 .env 구조**를 사용합니다:
 
 ### 구조
-1. **`config/.env`** - 모든 환경 변수 (Backend와 Frontend 공통 사용)
-   - `REACT_APP_*` 접두사 변수: React 앱에서 사용 (Frontend 빌드 시 필요)
+**`config/.env`** 
+   - `REACT_APP_*` 접두사 변수: Frontend, Backend 공통 사용
    - 일반 변수: Backend에서 사용 (NODE_ENV, PORT, HOST, DB_* 등)
    - 템플릿 파일: `config/.env.template` 참고
+   - **Docker Compose**: `env_file`로 `config/.env` 자동 로드
 
-### 환경 변수 특징
+## 배포
 
-- **모든 변수는 `config/.env`에 정의**: Backend와 Frontend 모두 동일한 파일 사용
-- **REACT_APP_ 접두사**: React 앱에서 접근 가능한 변수는 `REACT_APP_` 접두사 필수
-- **Backend 코드**: `REACT_APP_` 접두사 변수도 사용 (예: `REACT_APP_BACKEND_URL`)
-- **Docker Compose**: `env_file`로 `config/.env` 자동 로드
-- **빌드 시**: Frontend 빌드 시 `REACT_APP_` 변수들이 build args로 전달됨
-
-**참고:** Docker 실행 시 `docker-compose.yml`의 `environment: - DB_HOST=postgres`가 자동으로 설정되어 `.env` 파일 값을 덮어씁니다.
-
-### Docker 배포
-
-#### 빠른 시작
+### 배포 스크립트 사용
 
 ```bash
-# 배포 스크립트 사용 (권장)
-./deploy/deploy.sh fb    # Linux/Mac
-deploy\deploy.bat fb     # Windows
+# Docker image Build
+./scripts/docker_build.bat {version} # Linux/Mac
+.\scripts\docker_build.bat {version} # Windows
 
-# 또는 수동 실행
+# Deploy
+./scripts/deploy.sh {version} # Linux/Mac
+.\scripts\deploy.bat {version} # Windows
+
+# Docker 수동 실행
 docker compose up -d
-```
 
-#### 배포 스크립트
-
-프로젝트에는 다음을 처리하는 배포 스크립트가 포함되어 있습니다:
-- 환경 변수 검증
-- Docker 이미지 빌드
-- 컨테이너 관리
-
-**사용법:**
-```bash
-# Frontend와 Backend 모두 배포
-./deploy/deploy.sh fb
-
-# Backend만 배포
-./deploy/deploy.sh b
-
-# Frontend만 배포
-./deploy/deploy.sh f
 ```
 
 ## 📚 API 문서
 
-Backend가 실행 중일 때 Swagger UI에 접근:
+Backend url로 Swagger UI에 접근:
 ```
-http://localhost:5000/api-docs
+http://{BACKEND_URL}:5000/api-docs
 ```
 
 ### 주요 엔드포인트
@@ -165,29 +174,13 @@ http://localhost:5000/api-docs
 
 프로젝트에는 Jenkins CI/CD 파이프라인 설정이 포함되어 있습니다:
 
-- **위치**: `ci/Jenkinsfile`
+- **위치**: `ci/Jenkinsfile.app`
 - **기능**:
-  - 환경별 배포 (dev/prod)
-  - 템플릿에서 자동 .env 생성
-  - Docker 이미지 빌드 및 배포
-
-## 📝 개발 참고사항
-
-### 데이터베이스 호스트 설정
-
-- **로컬 개발** (`npm run dev`): `DB_HOST=localhost`
-- **Docker**: `DB_HOST=postgres` (docker-compose.yml에서 자동 설정)
-
-`docker-compose.yml`의 `environment` 섹션이 Docker 배포 시 `.env` 파일 값을 덮어씁니다.
-
-### 환경 변수 로딩
-
-Backend는 `config/.env`만 사용합니다:
-1. `config/.env` 로드 (모든 환경 변수 포함)
-2. `web/backend/.env`는 선택사항 (추가 설정만 포함, 현재 비어있음)
-
-Frontend도 `config/.env`만 사용합니다:
-1. 빌드 시: `REACT_APP_` 변수들이 Docker build args로 전달
-2. 런타임: 이미 빌드된 정적 파일 사용 (런타임 환경 변수 불필요)
-
-모든 환경 변수는 `config/.env`에서 중앙 관리됩니다.
+  - Git 소스 체크아웃 및 배포 버전 태깅 자동화
+  - Jenkins Credential Secret File(todolist_dev_env)을 로드하여 .env-dev를 안전하게 생성하고 Dev용 Docker 이미지를 빌드
+  - Dev 컨테이너 실행 후 토큰 리프레시 Job 및 통합 테스트 Job 자동 수행
+  - 테스트 완료 시 Dev 컨테이너 및 런타임 리소스 정리(Cleanup)
+  - Jenkins Credential Secret File(todolist_prod_env) 기반으로 .env-prod를 생성하고 Prod용 Docker 이미지를 빌드
+  - 아카이브된 Prod 이미지를 운영 환경에 로드 후 컨테이너 배포 수행
+  - 전체 배포 파이프라인에 대한 성공/실패 상태 로깅 및 후처리 수행
+  - 환경 변수 및 민감 값은 Jenkins Credential Secret File을 통해 일관적으로 보안 관리
