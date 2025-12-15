@@ -1,6 +1,6 @@
 services:
   backend:
-    build:
+    build: 
       context: ./web/backend
     container_name: todo-backend
     ports:
